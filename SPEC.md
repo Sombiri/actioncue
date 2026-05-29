@@ -395,8 +395,31 @@ Shows what is on the analyst's screen *before* any uncertainty reasoning happens
 - Case ID badge and domain tag
 - Description (one or two sentences)
 - AI risk score as a large number with a unit
-- A horizontal bar showing `risk_interval` with markers for the interval bounds and the decision threshold
+- The risk interval bar (see `render_interval_bar` below), showing `risk_interval` with markers for the interval bounds and the decision threshold
 - The decision threshold called out explicitly
+
+The interval bar is factored into a shared helper so the same encoding is reused in the three-way comparison's middle column (§7). This guarantees the data-level foil in the comparison is the *same* display the analyst sees in Panel 1, not a weaker stand-in.
+
+```python
+# ui/case_input.py
+import streamlit as st
+import streamlit.components.v1 as components
+
+def render_interval_bar(case):
+    """Render the risk interval with bounds and the decision threshold marked.
+    Used in Panel 1 and in the three-way comparison's middle (data-level) column."""
+    low, high = case.risk_interval
+    st.markdown(
+        f"**Risk interval:** {low:.2f}–{high:.2f}  ·  "
+        f"**Threshold:** {case.decision_threshold:.2f}"
+    )
+    # Horizontal bar over [0, 1]: shaded interval band, threshold tick, point estimate marker.
+    # Implement with a small inline SVG; the encoding must show
+    # (a) the interval span, (b) the threshold position, (c) the point estimate.
+    components.html(_interval_bar_svg(case), height=64)
+```
+
+`_interval_bar_svg(case)` returns a compact inline-SVG bar (interval band, threshold tick, point-estimate marker) over the [0, 1] range. Keep it in `ui/case_input.py` so both call sites import the one implementation.
 
 ### Panel 2: Uncertainty signals
 
@@ -678,8 +701,8 @@ def render_panel_3(case, cue, reveal="none", interactive=True, height=560):
 `export_figures.py` is an offline script (no Streamlit) that calls `render_cascade` with `interactive=False` and writes SVG files to `figures/`:
 
 ```python
-from cases.healthcare import CASE_C
-from cases.cross_domain import CASE_CR
+from cases.healthcare import CASE_C, CASE_A
+from cases.cross_domain import CASE_CR, CASE_DR
 from engine import compose_cue
 from rules import RULES
 from viz.cascade import render_cascade
@@ -690,12 +713,19 @@ def export(case, cue, reveal, path):
         f.write(svg)
 
 if __name__ == "__main__":
-    cue_cr = compose_cue(CASE_CR, RULES)
-    cue_c  = compose_cue(CASE_C,  RULES)
+    # Figures 1-3 develop the same healthcare case (Case C) for a single-case through-line.
+    cue_c = compose_cue(CASE_C, RULES)
+    export(CASE_C, cue_c, "none", "figures/figure_1_panel_3_compact.svg")
+    export(CASE_C, cue_c, "none", "figures/figure_2_actioncue_panel.svg")
+    export(CASE_C, cue_c, "all",  "figures/figure_3_panel_3_detailed.svg")
 
-    export(CASE_CR, cue_cr, "none", "figures/figure_1_panel_3_compact.svg")
-    export(CASE_CR, cue_cr, "none", "figures/figure_2_actioncue_panel.svg")
-    export(CASE_CR, cue_cr, "all",  "figures/figure_3_panel_3_detailed.svg")
+    # Section 4.4 generativity (optional small-multiples): cross-domain cases.
+    cue_a  = compose_cue(CASE_A,  RULES)
+    cue_cr = compose_cue(CASE_CR, RULES)
+    cue_dr = compose_cue(CASE_DR, RULES)
+    export(CASE_A,  cue_a,  "none", "figures/figure_4_generativity_a.svg")
+    export(CASE_CR, cue_cr, "none", "figures/figure_4_generativity_cr.svg")
+    export(CASE_DR, cue_dr, "none", "figures/figure_4_generativity_dr.svg")
 ```
 
 Figures in the paper come from this export, guaranteeing prototype-figure provenance.
@@ -718,22 +748,18 @@ def render_comparison(case, cue):
     with col_unc:
         st.subheader("Uncertainty display only")
         st.metric("AI risk score", f"{case.risk_score:.2f}")
-        st.caption(
-            f"Interval: {case.risk_interval[0]:.2f}–{case.risk_interval[1]:.2f}  ·  "
-            f"Threshold: {case.decision_threshold:.2f}"
-        )
-        # Optionally: small interval bar with threshold marker (re-use Panel 1's bar)
+        render_interval_bar(case)   # the same data-level display used in Panel 1
 
     with col_ac:
         st.subheader("ActionCue (process transparency)")
         render_panel_3(case, cue, reveal="none", interactive=True, height=480)
 ```
 
-The three views show the same case at three levels of decision-process transparency. The leftmost shows what a confidence-only display reveals (a point estimate); the middle shows what a state-of-the-art uncertainty display reveals (the interval and threshold); the rightmost shows what ActionCue's process-transparency view reveals (which uncertainty rules fired, which class won precedence, the resulting cue and force).
+The three views show the same case at three levels of decision-process transparency. The leftmost shows what a confidence-only display reveals (a point estimate). The middle shows what a data-level uncertainty display reveals — the risk interval with the decision threshold marked, rendered by the same `render_interval_bar` helper used in Panel 1, so the foil is a faithful instance of current practice rather than a weakened stand-in. The rightmost shows what ActionCue's process-transparency view reveals (which uncertainty rules fired, which class won precedence, the resulting cue and force).
 
 The comparison is the live equivalent of Figure 2 in the paper. `export_figures.py` also generates a static SVG composite of the three views for use as the paper figure.
 
-Case CR is the recommended starting case for the comparison: it makes precedence resolution visible (validity wins with completion supporting) without the safety modifier muddying the central contrast.
+Case C is the recommended starting case for the comparison, aligning with the paper's §4.3 worked example. It holds the healthcare through-line and gives the sharpest contrast across the three displays: the confidence-only view reads as act (risk above threshold), the uncertainty-only view reads as borderline (interval crosses threshold), and the ActionCue view reveals the missing critical input as the primary issue (completion wins precedence over sensitivity, cue is complete/mandatory), reframing the interval-crossing as the supporting cue. The missing-data dimension is invisible in both other displays. Cross-domain cases (CR, DR) are reserved for the generativity view rather than the comparison.
 
 ---
 
