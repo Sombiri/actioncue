@@ -70,6 +70,8 @@ want you to write something.
 - Force-level vocabulary: `advisory`, `strong`, `mandatory`, `blocking`
   (the v2 vocabulary — do not use older force terms if you find them in
   your training data).
+- Rule logic, `signal_for`, and `compose_cue` must be pure functions over
+  `Case` — no I/O, no global state, no side effects (per SPEC §12).
 
 ## Verification
 
