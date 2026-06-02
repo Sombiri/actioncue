@@ -6,8 +6,6 @@ from cases.healthcare import CASE_A, CASE_B, CASE_C, CASE_D, CASE_E
 from cases.cross_domain import CASE_CR, CASE_DR
 
 
-
-
 # ---------- Per-case behavioral tests ----------
 
 def test_case_a_proceeds():
@@ -49,13 +47,10 @@ def test_case_dr_safety_raises_strong_to_mandatory():
     assert cue.safety_modified
 
 
-
 # ---------- Engine invariants ----------
 
 def test_constraint_matrix_enforced_for_all_cases():
     """Every composed cue must satisfy the constraint matrix."""
-    from cases.healthcare import CASE_A, CASE_B, CASE_C, CASE_D, CASE_E
-    from cases.cross_domain import CASE_CR, CASE_DR
     for case in [CASE_A, CASE_B, CASE_C, CASE_D, CASE_E, CASE_CR, CASE_DR]:
         cue = compose_cue(case, RULES)
         assert cue.primary_force in CONSTRAINT_MATRIX[cue.primary_action], (
@@ -82,39 +77,39 @@ def test_invalid_combination_raises():
     with pytest.raises(ValueError, match="Invalid"):
         compose_cue(bad_case, [bad_rule])
 
-   
+
 def test_within_class_plurality_raises():
     """Two rules of the same class firing simultaneously must raise."""
     case = Case(
-        id="T", 
+        id="T",
         domain="test",
         description="trigger both validity rules",
-        risk_score=0.5, 
-        risk_interval=(0.4, 0.6), 
+        risk_score=0.5,
+        risk_interval=(0.4, 0.6),
         decision_threshold=0.5,
-        is_outside_scope=True, 
+        is_outside_scope=True,
         scope_reason="test",
     )
     r1 = Rule(
-        id="v1", 
-        rule_class="validity", 
+        id="v1",
+        rule_class="validity",
         precedence=1,
-        description="v1", 
-        base_action="escalate", 
+        description="v1",
+        base_action="escalate",
         base_force="mandatory",
         signal_name="out_of_scope",
-        trigger=lambda c: c.is_outside_scope, 
+        trigger=lambda c: c.is_outside_scope,
         rationale=lambda c: "v1",
     )
     r2 = Rule(
-        id="v2", 
-        rule_class="validity", 
+        id="v2",
+        rule_class="validity",
         precedence=1,
-        description="v2", 
-        base_action="escalate", 
+        description="v2",
+        base_action="escalate",
         base_force="mandatory",
         signal_name="out_of_scope",
-        trigger=lambda c: c.is_outside_scope, 
+        trigger=lambda c: c.is_outside_scope,
         rationale=lambda c: "v2",
     )
     with pytest.raises(AssertionError, match="plurality"):
@@ -126,4 +121,3 @@ def test_triggering_signal_attached_to_firings():
     assert cue.primary_firing.triggering_signal is not None
     for f in cue.supporting:
         assert f.triggering_signal is not None
-    
