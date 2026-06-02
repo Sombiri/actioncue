@@ -19,6 +19,7 @@ CONSTRAINT_MATRIX: dict[str, set[str]] = {
     "abstain":  {"blocking"},
 }
 
+
 def raise_force(force: str) -> str:
     idx = FORCE_LEVELS.index(force)
     return FORCE_LEVELS[min(idx + 1, len(FORCE_LEVELS) - 1)]
@@ -30,6 +31,7 @@ def validate_combination(action: str, force: str) -> None:
             f"Invalid (action, force) combination: ({action}, {force}). "
             f"Allowed forces for {action!r}: {sorted(CONSTRAINT_MATRIX[action])}."
         )
+
 
 def compose_cue(case: Case, rules: list[Rule]) -> Cue:
     # 1. Detect firings
@@ -45,7 +47,7 @@ def compose_cue(case: Case, rules: list[Rule]) -> Cue:
     ]
 
     # 2. Within-class plurality assertion (Layer 2 invariant)
-    class_counts =Counter(f.rule.rule_class for f in firings)
+    class_counts = Counter(f.rule.rule_class for f in firings)
     duplicates = [cls for cls, count in class_counts.items() if count > 1]
     if duplicates:
         raise AssertionError(
@@ -53,7 +55,6 @@ def compose_cue(case: Case, rules: list[Rule]) -> Cue:
             f"The framework defers within-class plurality to future work; "
             f"the demo cases must fire at most one rule per class."
         )
-    
 
     # 3. No firings: proceed
     if not firings:
@@ -65,7 +66,7 @@ def compose_cue(case: Case, rules: list[Rule]) -> Cue:
         )
         validate_combination(cue.primary_action, cue.primary_force)
         return cue
-    
+
     # 4. Sort by precedence (lower = higher priority)
     firings.sort(key=lambda f: f.rule.precedence)
 
@@ -90,7 +91,7 @@ def compose_cue(case: Case, rules: list[Rule]) -> Cue:
         if case.is_low_reversibility:
             reasons.append("low reversibility")
         cue.safety_reason = " and ".join(reasons)
-    
+
     # 7. Constraint matrix validation (Layer 2 invariant)
     validate_combination(cue.primary_action, cue.primary_force)
 
