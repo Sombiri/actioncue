@@ -14,12 +14,12 @@ _BAND_GAP = 10
 _BAND_Y0 = 20
 _ACCENT_WIDTH = 6
 
-_OUTPUT_X = 400
+_OUTPUT_X = 420
 _OUTPUT_Y = 150
-_OUTPUT_WIDTH = 140
+_OUTPUT_WIDTH = 130
 _OUTPUT_HEIGHT = 80
 
-_SCALE_X = 560
+_SCALE_X = 580
 _SCALE_Y0 = 20
 _SCALE_STEP = 90
 
@@ -84,8 +84,8 @@ def _render_style() -> str:
 
 def _render_defs() -> str:
     return '''  <defs>
-    <marker id="cascade-arrowhead" viewBox="0 0 10 10" refX="8" refY="5"
-            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <marker id="cascade-arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
     </marker>
   </defs>'''
@@ -118,11 +118,8 @@ def _render_resolution(winner_index: int) -> str:
     end_x = _OUTPUT_X
     end_y = _OUTPUT_Y + _OUTPUT_HEIGHT // 2
     mid_x = (start_x + end_x) // 2
-    label_x = mid_x
-    label_y = start_y - 8
     return f'''  <g class="resolution">
     <path class="resolution-arrow" d="M {start_x} {start_y} L {mid_x} {start_y} L {mid_x} {end_y} L {end_x} {end_y}" marker-end="url(#cascade-arrowhead)" />
-    <text class="resolution-label" x="{label_x}" y="{label_y}" text-anchor="middle">precedence resolution</text>
   </g>'''
 
 
