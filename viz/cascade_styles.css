@@ -93,3 +93,9 @@
 /* Invert text on the darker output backgrounds so the label stays readable. */
 .cascade .output[data-force="mandatory"] text,
 .cascade .output[data-force="blocking"]  text { fill: #FFFFFF; }
+
+
+/* --- On-demand text (rule id, rationale, signal label per band) --- */
+.cascade .on-demand-rule-id   { font-size: 10px; font-family: ui-monospace, "SF Mono", Consolas, monospace; fill: #555555; }
+.cascade .on-demand-rationale { font-size: 11px; fill: #333333; }
+.cascade .on-demand-signal    { font-size: 10px; font-style: italic; fill: #555555; }
