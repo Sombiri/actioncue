@@ -8,12 +8,6 @@ from viz._common import bool_attr, wrap_text, render_style
 
 _CLASS_ORDER = ["validity", "completion", "sensitivity", "interpretation"]
 _FORCE_ORDER = ["advisory", "strong", "mandatory", "blocking"]
-_FORCE_TOOLTIPS = {
-    "advisory":  "Advisory — low-emphasis info",
-    "strong":    "Strong — recommended attention",
-    "mandatory": "Mandatory — response required",
-    "blocking":  "Blocking — action prevented",
-}
 
 
 # Layout in viewBox units.
@@ -29,9 +23,26 @@ _OUTPUT_Y = 140
 _OUTPUT_WIDTH = 140
 _OUTPUT_HEIGHT = 100
 
-_SCALE_X = 620
-_SCALE_Y0 = 20
-_SCALE_STEP = 90
+# --- Horizontal force strip (below the bands) ---
+# Replaces the vertical force scale on the right. Reads as a vocabulary axis
+# (four ordinal levels in reading order) with the active level highlighted.
+# Sits flush below band 3 (which ends at y = _BAND_Y0 + 4 * (_BAND_HEIGHT + _BAND_GAP) - _BAND_GAP = 370).
+_STRIP_Y = _BAND_Y0 + 3 * (_BAND_HEIGHT + _BAND_GAP) + _BAND_HEIGHT + 4  # band 3 bottom + 4-unit gap = 374
+_STRIP_CELL_W = 120
+_STRIP_CELL_H = 28
+_STRIP_GAP = 4
+_STRIP_TOTAL_W = 4 * _STRIP_CELL_W + 3 * _STRIP_GAP    # 492
+_STRIP_X = (720 - _STRIP_TOTAL_W) // 2                  # centered for default width=720
+_STRIP_SAFETY_ARROW_Y = _STRIP_Y + _STRIP_CELL_H + 14
+
+# --- Safety banner (textual rationale for the safety lift) ---
+_BANNER_HEIGHT = 32
+_BANNER_PAD_X = 16
+_BANNER_ACCENT_W = 3
+_BANNER_TEXT_INSET_X = 12     # text starts this far right of the accent strip
+_BANNER_TITLE_DY = 12         # title baseline relative to banner top
+_BANNER_DETAIL_DY = 26        # detail baseline relative to banner top
+_BANNER_TOP_Y_GAP = 22        # vertical gap between strip safety arrow and banner top
 
 
 def _band_y(index: int) -> int:
@@ -133,22 +144,94 @@ def _render_output(action: str, force: str, rule_class: Optional[str] = None) ->
   </g>'''
 
 
-def _render_force_scale(active_force: str) -> str:
-    ticks = []
+def _render_safety_banner(cue: Cue, panel_width: int) -> str:
+    """Vermillion accent strip + caption shown only when cue.safety_modified.
+
+    Sits below the force strip. The strip's safety arrow shows *the lift*
+    visually; the banner carries the textual rationale ("Force raised from
+    strong to mandatory" + "Reason: high harm"). Together they show *what
+    happened* and *why*.
+    """
+    if not cue.safety_modified or cue.primary_firing is None:
+        return ""
+
+    base_force = html.escape(cue.primary_firing.base_force)
+    primary_force = html.escape(cue.primary_force)
+    reason = html.escape(cue.safety_reason or "")
+
+    title = f"Force raised from {base_force} to {primary_force}"
+    detail = f"Reason: {reason}" if reason else ""
+
+    banner_top_y = _STRIP_SAFETY_ARROW_Y + _BANNER_TOP_Y_GAP
+    banner_w = panel_width - 2 * _BANNER_PAD_X
+    text_x = _BANNER_PAD_X + _BANNER_TEXT_INSET_X
+    title_y = banner_top_y + _BANNER_TITLE_DY
+    detail_y = banner_top_y + _BANNER_DETAIL_DY
+
+    detail_block = (
+        f'    <text class="safety-detail" x="{text_x}" y="{detail_y}">{detail}</text>'
+        if detail else ""
+    )
+
+    return f'''  <g class="safety-banner">
+    <rect class="safety-bg" x="{_BANNER_PAD_X}" y="{banner_top_y}" width="{banner_w}" height="{_BANNER_HEIGHT}" rx="4" />
+    <rect class="safety-accent" x="{_BANNER_PAD_X}" y="{banner_top_y}" width="{_BANNER_ACCENT_W}" height="{_BANNER_HEIGHT}" />
+    <text class="safety-title" x="{text_x}" y="{title_y}">{title}</text>
+{detail_block}
+  </g>'''
+
+
+def _render_force_strip(cue: Cue, panel_width: int) -> str:
+    """Horizontal force strip below the bands.
+
+    Four ordinal cells (advisory → strong → mandatory → blocking) laid out
+    left-to-right. Active cell gets the force tint at full strength + bold
+    label; inactive cells stay muted. When the safety modifier raised the
+    force, a left-to-right arrow under the strip spans from the base_force
+    cell's center to the primary_force cell's center, with a small caption.
+
+    This replaces the old vertical force scale + safety arrow combination.
+    """
+    active_force = cue.primary_force
+    base_force = cue.primary_firing.base_force if cue.primary_firing else None
+    safety_modified = cue.safety_modified and base_force is not None and base_force != active_force
+
+    strip_x = (panel_width - _STRIP_TOTAL_W) // 2
+
+    cells = []
+    cell_centers: dict[str, int] = {}
     for i, level in enumerate(_FORCE_ORDER):
-        tick_y = _SCALE_Y0 + i * _SCALE_STEP
+        cell_x = strip_x + i * (_STRIP_CELL_W + _STRIP_GAP)
+        center_x = cell_x + _STRIP_CELL_W // 2
+        cell_centers[level] = center_x
         is_active = level == active_force
-        tip = _FORCE_TOOLTIPS[level] + (" (current)" if is_active else "")
-        ticks.append(
-            f'<g class="tick" data-level="{level}" data-active="{bool_attr(is_active)}" data-tip="{tip}">'
-            f'<line x1="{_SCALE_X}" y1="{tick_y}" x2="{_SCALE_X + 10}" y2="{tick_y}" '
-            f'stroke="#333333" stroke-width="{2 if is_active else 1}" />'
-            f'<text x="{_SCALE_X + 14}" y="{tick_y + 4}" font-size="11">{level}</text>'
+        text_y = _STRIP_Y + 18
+        cells.append(
+            f'<g class="strip-cell" data-level="{level}" data-active="{bool_attr(is_active)}">'
+            f'<rect class="strip-cell-bg" data-level="{level}" '
+            f'x="{cell_x}" y="{_STRIP_Y}" width="{_STRIP_CELL_W}" height="{_STRIP_CELL_H}" rx="4" />'
+            f'<text class="strip-cell-label" x="{center_x}" y="{text_y}" text-anchor="middle">{level}</text>'
             f'</g>'
         )
-    ticks_svg = "\n".join(ticks)
-    return f'''  <g class="force-scale">
-{ticks_svg}
+    cells_svg = "\n    ".join(cells)
+
+    if safety_modified:
+        x_from = cell_centers[base_force]
+        x_to = cell_centers[active_force]
+        tip = html.escape(f"Force raised from {base_force} to {active_force} due to {cue.safety_reason}", quote=True)
+        # Visual-only safety arrow: the textual explanation lives in the
+        # safety banner below, so the arrow doesn't restate it.
+        safety = (
+            f'\n    <g class="strip-safety" data-tip="{tip}">'
+            f'<path class="strip-safety-arrow" d="M {x_from} {_STRIP_SAFETY_ARROW_Y} L {x_to} {_STRIP_SAFETY_ARROW_Y}" '
+            f'marker-end="url(#cascade-arrowhead)" />'
+            f'</g>'
+        )
+    else:
+        safety = ""
+
+    return f'''  <g class="force-strip">
+    {cells_svg}{safety}
   </g>'''
 
 
@@ -166,52 +249,17 @@ def _render_defs() -> str:
   </defs>'''
 
 
-def _render_safety_arrow(cue: Cue) -> str:
-    if not cue.safety_modified or cue.primary_firing is None:
-        return ""
-    base_force = cue.primary_firing.base_force
-    modified_force = cue.primary_force
-    try:
-        i_from = _FORCE_ORDER.index(base_force)
-        i_to = _FORCE_ORDER.index(modified_force)
-    except ValueError:
-        return ""
-    y_from = _SCALE_Y0 + i_from * _SCALE_STEP
-    y_to = _SCALE_Y0 + i_to * _SCALE_STEP
-    x = _SCALE_X - 8
-    tip = f"Force raised from {base_force} to {modified_force} due to {cue.safety_reason}"
-    tip = html.escape(tip, quote=True)
-    return (
-        f'  <g class="safety-modifier" color="#D55E00" data-tip="{tip}">\n'
-        f'    <path class="safety-arrow" d="M {x} {y_from} L {x} {y_to}" '
-        f'marker-end="url(#cascade-arrowhead)" />\n'
-        f'  </g>'
-    )
+def _render_resolution(winner_index: int, interactive: bool = True) -> str:
+    """Resolution arrow from the winner band to the output box's force pill.
 
-
-def _render_resolution(winner_index: int, interactive: bool = True, include_output_box: bool = True, include_force_scale: bool = True) -> str:
+    The pill is the visual hero of the cue display, so the arrow lands on
+    the pill's vertical center rather than on the output box's geometric
+    middle.
+    """
     start_x = _BAND_X + _BAND_WIDTH
     start_y = _band_y(winner_index) + _BAND_HEIGHT // 2
-    if include_output_box:
-        end_x = _OUTPUT_X
-        # Land on the force pill's vertical center (pill is the visual hero
-        # of the output box and reads as the "endpoint" of the resolution).
-        end_y = _OUTPUT_Y + 42 + 12  # pill_top_y + pill_h/2
-    else:
-        # No output box: straight horizontal arrow at the winner-band mid-y.
-        # When the force scale is also gone, the arrow can extend further
-        # right (no scale column to clear), making the handoff to Panel 4
-        # in the composite feel confident rather than stubby.
-        end_y = start_y
-        if include_force_scale:
-            # Scale still present: keep the arrow short so it doesn't run
-            # into the scale ticks.
-            end_x = _OUTPUT_X - 30
-        else:
-            # No scale either: extend ~140 units past the bands' right edge,
-            # close to where the cascade's effective right boundary sits in
-            # the composite (Panel 4 picks up immediately to the right).
-            end_x = start_x + 140
+    end_x = _OUTPUT_X
+    end_y = _OUTPUT_Y + 42 + 12  # pill_top_y + pill_h/2
     mid_x = (start_x + end_x) // 2
     return f'''  <g class="resolution">
     <path class="resolution-arrow" data-tip="highest-precedence fired class wins" d="M {start_x} {start_y} L {mid_x} {start_y} L {mid_x} {end_y} L {end_x} {end_y}" marker-end="url(#cascade-arrowhead)" />
@@ -224,28 +272,21 @@ def render_cascade(
     *,
     reveal: str = "none",
     width: int = 720,
-    height: int = 400,
+    height: int = 500,
     css: bool = True,
     interactive: bool = True,
-    include_output_box: bool = True,
-    include_force_scale: bool = True,
 ) -> str:
     """
     Return a complete SVG fragment that renders the composition trace for `case` and `cue`.
 
+    Per the 2f redesign, the cascade is the canonical home for the cue
+    display (action + force pill + via caption + safety banner) — Panel 4
+    no longer exists as a separate panel. The cascade always renders:
+    bands, resolution arrow, output box, horizontal force strip, and the
+    safety banner when applicable.
+
     - reveal="none" -> compact variant (Figures 1 and 2).
     - reveal="all"  -> detailed variant with on-demand layer expanded (Figure 3).
-    - css / interactive are placeholders in 2a; wired in 2b / 2c.
-    - include_output_box: when False, suppresses the output rectangle and
-      truncates the resolution arrow so it ends mid-air pointing right.
-      Used by the four-panel compositor so Panel 4 carries the canonical
-      action+force display (resolves Panel 3/4 redundancy). Default True
-      preserves standalone behavior (Figure 3, the live demo).
-    - include_force_scale: when False, suppresses the vertical force scale
-      and the safety-modifier arrow (the safety arrow loses its anchor
-      without the scale). Used by the four-panel compositor; Panel 4's
-      force pill + safety banner cover this data canonically. Default True
-      preserves standalone behavior.
     """
     winner_class = (
         cue.primary_firing.rule.rule_class if cue.primary_firing else None
@@ -275,16 +316,17 @@ def render_cascade(
         resolution = _render_resolution(
             _CLASS_ORDER.index(winner_class),
             interactive=interactive,
-            include_output_box=include_output_box,
-            include_force_scale=include_force_scale,
         )
     else:
         resolution = '  <g class="resolution"></g>'
 
     primary_class = cue.primary_firing.rule.rule_class if cue.primary_firing else None
-    output = _render_output(cue.primary_action, cue.primary_force, primary_class) if include_output_box else ""
-    scale = _render_force_scale(cue.primary_force) if include_force_scale else ""
-    safety = _render_safety_arrow(cue) if include_force_scale else ""
+    output = _render_output(cue.primary_action, cue.primary_force, primary_class)
+    scale = _render_force_strip(cue, width)
+    # Safety banner shows the textual rationale ("Force raised from X to Y" +
+    # reason). The visual lift arrow lives inside _render_force_strip; the
+    # two together show what happened and why.
+    safety = _render_safety_banner(cue, width)
     style = render_style("cascade_styles.css") if css else ""
     script = _render_script() if interactive else ""
     defs = _render_defs()
