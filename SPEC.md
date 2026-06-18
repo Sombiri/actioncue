@@ -2,7 +2,7 @@
 
 A lightweight Streamlit prototype demonstrating the uncertainty-to-action binding framework. This document is the build specification — it defines the data models, the rule engine, the four-panel UI, the Panel 3 composition trace renderer, the three-way comparison mode, and the seven pre-built demonstration cases. It is detailed enough to drop into a Claude Code session as a build target.
 
-**v2 changes (this revision).** Force-level vocabulary updated end-to-end (advisory, strong, mandatory, blocking). Constraint matrix added to the engine. Within-class plurality assertion added. `Rule` gains `signal_name` to bind each rule to its triggering Panel 2 signal; `RuleFiring` carries a `triggering_signal` field for the on-demand back-reference. Panel 3 specification fully rewritten as an annotated precedence cascade with explicit resolution step, rendered as inline SVG via `st.components.v1.html` with hover and click affordances (true overview-first-then-details-on-demand per Shneiderman 1996). The cascade renderer is a single Python function used both to drive the live demo and to export paper-ready SVG figures (single source of truth for figures and prototype). Three-way comparison mode added (confidence-only / uncertainty-display-only / ActionCue compact). `CASE_DR` risk interval corrected so sensitivity rule actually fires. Tests expanded for constraint validation and plurality assertion. Build sequence extended to four weeks.
+**v2 changes (this revision).** Force-level vocabulary updated end-to-end (advisory, strong, mandatory, blocking). Constraint matrix added to the engine. Within-class plurality assertion added. `Rule` gains `signal_name` to bind each rule to its triggering Panel 2 signal; `RuleFiring` carries a `triggering_signal` field for the on-demand back-reference. Panel 3 specification fully rewritten as an annotated precedence cascade with explicit resolution step, rendered as inline SVG via `st.components.v1.html` with hover and click affordances (true overview-first-then-details-on-demand per Shneiderman 1996). All four panels are now rendered by pure SVG functions in `viz/` (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`); two compositors (`render_four_panel`, `render_three_way`) assemble per-panel SVGs into Figures 1 and 2 in a 2×2 Z-scan grid and a three-column comparison respectively. The Streamlit panels are thin wrappers around these renderers (single source of truth: every paper figure is produced by code the demo also runs). Three-way comparison mode added (confidence-only / data-level interval bar / ActionCue compact); the middle column reuses `render_interval_bar` from `viz/case_input.py` so the data-level foil is a faithful instance of current practice. `CASE_DR` risk interval corrected so sensitivity rule actually fires. Tests expanded for constraint validation and plurality assertion. Build sequence remains four weeks; week-2 scope now covers all four per-panel renderers and both compositors.
 
 ---
 
@@ -32,26 +32,32 @@ actioncue/
 │   └── cross_domain.py          # Cases CR (credit), DR (disaster)
 ├── ui/
 │   ├── __init__.py
-│   ├── case_input.py            # Panel 1
-│   ├── signals.py               # Panel 2
-│   ├── composition.py           # Panel 3 — wraps the SVG renderer in components.v1.html
-│   ├── cue_output.py            # Panel 4
-│   ├── comparison.py            # Three-way comparison mode
+│   ├── case_input.py            # Panel 1 wrapper (thin; calls viz/case_input)
+│   ├── signals.py               # Panel 2 wrapper (thin; calls viz/signals)
+│   ├── composition.py           # Panel 3 — wraps viz/cascade in components.v1.html
+│   ├── cue_output.py            # Panel 4 wrapper (thin; calls viz/cue_output)
+│   ├── comparison.py            # Three-way comparison mode wrapper (thin; calls viz/composite)
 │   └── rule_table.py            # The visible rule registry tab
 ├── viz/
 │   ├── __init__.py
+│   ├── case_input.py            # render_case_input(case) -> svg string  (includes interval bar)
+│   ├── signals.py               # render_signals(case) -> svg string
 │   ├── cascade.py               # render_cascade(case, cue, options) -> svg string
+│   ├── cue_output.py            # render_cue_output(cue) -> svg string
+│   ├── composite.py             # render_four_panel(case, cue), render_three_way(case, cue) -> svg
 │   ├── cascade_styles.css       # SVG-scoped CSS (force colors, hover states)
 │   └── cascade_interact.js      # Hover and click handlers
 ├── figures/                     # Exported paper-ready SVGs (figure_1.svg, figure_2.svg, figure_3.svg)
-├── export_figures.py            # Offline script that calls render_cascade for paper figures
+├── export_figures.py            # Offline script: calls viz/composite and viz/cascade for paper figures
 ├── tests/
 │   └── test_engine.py           # Per-case assertions plus engine invariants
 ├── requirements.txt
 └── README.md
 ```
 
-The `viz/` package is new in v2. It separates the cascade renderer from the Streamlit panel wrapper so the *same* renderer drives both the live demo (`ui/composition.py`) and the paper figure export (`export_figures.py`). This is the single-source-of-truth design: figures shown in the paper come from the same code that runs in the demo.
+The `viz/` package holds all SVG-emitting code. Each panel has a pure SVG renderer (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`) that returns an SVG fragment with a known fixed `viewBox`. The Streamlit panels in `ui/` are thin wrappers: each calls its `viz/` counterpart and passes the SVG to `components.v1.html`. The compositors in `viz/composite.py` assemble the per-panel SVGs into the two paper figures (four-panel grid; three-way comparison).
+
+This is the single-source-of-truth design carried through: the same code that renders Panel 3 in the live demo also produces Figure 3 in the paper; the same code that renders Panel 1 also contributes its sub-SVG to Figure 1 and to the middle column of Figure 2 (via `render_interval_bar`, defined inside `viz/case_input.py`). Nothing in the figure pipeline runs code the demo does not also run.
 
 ---
 
@@ -696,9 +702,96 @@ def render_panel_3(case, cue, reveal="none", interactive=True, height=560):
 
 `render_cascade` emits a single string that contains the `<style>` block, the `<svg>` element, and (if `interactive=True`) the `<script>` block. No iframes within iframes — Streamlit handles that already.
 
+### The other per-panel renderers
+
+Each of the remaining three panels follows the same shape as `render_cascade`: a pure function that takes the relevant inputs, returns an SVG fragment with a fixed `viewBox`, and does not touch Streamlit. The Streamlit wrappers in `ui/` are one-line passes to `components.v1.html`.
+
+```python
+# viz/case_input.py
+def render_case_input(case: Case, *, width: int = 360, height: int = 220,
+                      css: bool = True, interactive: bool = False) -> str:
+    """Panel 1 SVG: case ID badge, domain tag, description, risk score,
+    interval bar with threshold, threshold callout."""
+
+def render_interval_bar(case: Case, *, width: int = 320, height: int = 48) -> str:
+    """The risk interval bar alone. Used inside render_case_input AND directly in
+    the three-way comparison's middle column (the data-level foil)."""
+
+# viz/signals.py
+def render_signals(case: Case, *, width: int = 360, height: int = 220,
+                   css: bool = True, interactive: bool = False) -> str:
+    """Panel 2 SVG: detected signal rows grouped by category (data, scope, threshold,
+    explanation, decision context). Each row carries a stable id (`signal-row-{name}`)
+    so the cascade's back-reference layer can target it."""
+
+# viz/cue_output.py
+def render_cue_output(cue: Cue, *, width: int = 360, height: int = 260,
+                      css: bool = True, interactive: bool = False) -> str:
+    """Panel 4 SVG: primary action (large), force pill, responsible actor, rationale,
+    supporting cue stack, safety-modifier banner when applicable."""
+```
+
+All four panel renderers (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`) share the same calling convention: `(*, width, height, css, interactive)`. This uniformity is what makes the compositors trivial.
+
+The Streamlit wrappers are correspondingly thin:
+
+```python
+# ui/case_input.py
+import streamlit.components.v1 as components
+from viz.case_input import render_case_input
+
+def render_panel_1(case):
+    components.html(render_case_input(case, css=True, interactive=False), height=240)
+```
+
+The same shape applies to `ui/signals.py`, `ui/composition.py` (which already wraps `render_cascade`), and `ui/cue_output.py`.
+
+### The two compositors
+
+```python
+# viz/composite.py
+def render_four_panel(case: Case, cue: Cue, *,
+                      width: int = 960, height: int = 880,
+                      css: bool = True, interactive: bool = False) -> str:
+    """Figure 1: 2x2 grid of the four panels, Z-scan reading order.
+
+        +---------------+---------------+
+        |  Panel 1      |  Panel 2      |
+        |  Case input   |  Signals      |
+        +---------------+---------------+
+        |  Panel 3      |  Panel 4      |
+        |  Cascade      |  Cue output   |
+        +---------------+---------------+
+
+    Bottom row is taller than the top row (~520 vs ~360) because the cascade's
+    four bands and the cue output's stack need vertical room. Each sub-SVG is
+    wrapped in <g transform="translate(...)"> and its inner viewBox preserved.
+    """
+
+def render_three_way(case: Case, cue: Cue, *,
+                     width: int = 1080, height: int = 520,
+                     css: bool = True, interactive: bool = False) -> str:
+    """Figure 2: three side-by-side displays on the same case.
+
+        +-----------+-----------+-----------+
+        | Conf-only |  Interval | ActionCue |
+        |           |  bar      | (cascade) |
+        +-----------+-----------+-----------+
+
+    Left column: a single-number risk-score card with the threshold beneath
+    (rendered as a small SVG inside composite.py — no separate viz/ module).
+    Middle column: render_interval_bar(case) — the same helper Panel 1 uses.
+    Right column: render_cascade(case, cue, reveal="none", css=True, interactive=False).
+    """
+```
+
+The compositors assemble sub-SVGs by wrapping each in `<g transform="translate(x, y)">`. The inner `viewBox`es are preserved; only the outer SVG's `viewBox` changes. CSS is included only on the outer SVG (the sub-renderers pass `css=False` when called by the compositor) so styles do not duplicate.
+
+A small caveat on uniform widths: the three-way compositor calls the cascade with the same width it would use standalone, so the cascade is not visually compressed. The confidence-only and interval-bar columns are narrower because they encode less. This means the three columns are not equal-width — the cascade column is wider than the other two. This is encoding-faithful: the data-level displays have less to show, and giving them equal width to the cascade would either pad them (misleading the reader about their information density) or compress the cascade (defeating the comparison).
+
 ### Figure export
 
-`export_figures.py` is an offline script (no Streamlit) that calls `render_cascade` with `interactive=False` and writes SVG files to `figures/`:
+`export_figures.py` is an offline script (no Streamlit) that calls the compositors and the cascade renderer with `interactive=False` and writes SVG files to `figures/`:
 
 ```python
 from cases.healthcare import CASE_C, CASE_A
@@ -706,29 +799,42 @@ from cases.cross_domain import CASE_CR, CASE_DR
 from engine import compose_cue
 from rules import RULES
 from viz.cascade import render_cascade
+from viz.composite import render_four_panel, render_three_way
 
-def export(case, cue, reveal, path):
-    svg = render_cascade(case, cue, reveal=reveal, css=True, interactive=False)
+def write(svg: str, path: str) -> None:
     with open(path, "w") as f:
         f.write(svg)
 
 if __name__ == "__main__":
-    # Figures 1-3 develop the same healthcare case (Case C) for a single-case through-line.
     cue_c = compose_cue(CASE_C, RULES)
-    export(CASE_C, cue_c, "none", "figures/figure_1_panel_3_compact.svg")
-    export(CASE_C, cue_c, "none", "figures/figure_2_actioncue_panel.svg")
-    export(CASE_C, cue_c, "all",  "figures/figure_3_panel_3_detailed.svg")
+
+    # Figure 1: four-panel composite on Case C
+    write(render_four_panel(CASE_C, cue_c, css=True, interactive=False),
+          "figures/figure_1_four_panel.svg")
+
+    # Figure 2: three-way comparison on Case C
+    write(render_three_way(CASE_C, cue_c, css=True, interactive=False),
+          "figures/figure_2_three_way.svg")
+
+    # Figure 3: Panel 3 detailed variant on Case C — generated and ready, used only if
+    # the paper later \refs it. Not referenced in the current §4 draft.
+    write(render_cascade(CASE_C, cue_c, reveal="all", css=True, interactive=False),
+          "figures/figure_3_panel_3_detailed.svg")
 
     # Section 4.4 generativity (optional small-multiples): cross-domain cases.
+    # Each renders the four-panel composite so the reader can compare across cases.
     cue_a  = compose_cue(CASE_A,  RULES)
     cue_cr = compose_cue(CASE_CR, RULES)
     cue_dr = compose_cue(CASE_DR, RULES)
-    export(CASE_A,  cue_a,  "none", "figures/figure_4_generativity_a.svg")
-    export(CASE_CR, cue_cr, "none", "figures/figure_4_generativity_cr.svg")
-    export(CASE_DR, cue_dr, "none", "figures/figure_4_generativity_dr.svg")
+    write(render_four_panel(CASE_A,  cue_a,  css=True, interactive=False),
+          "figures/figure_4_generativity_a.svg")
+    write(render_four_panel(CASE_CR, cue_cr, css=True, interactive=False),
+          "figures/figure_4_generativity_cr.svg")
+    write(render_four_panel(CASE_DR, cue_dr, css=True, interactive=False),
+          "figures/figure_4_generativity_dr.svg")
 ```
 
-Figures in the paper come from this export, guaranteeing prototype-figure provenance.
+Figures in the paper come from this export, guaranteeing prototype-figure provenance: every figure the paper shows is produced by code the live demo also runs.
 
 ---
 
@@ -757,7 +863,7 @@ def render_comparison(case, cue):
 
 The three views show the same case at three levels of decision-process transparency. The leftmost shows what a confidence-only display reveals (a point estimate). The middle shows what a data-level uncertainty display reveals — the risk interval with the decision threshold marked, rendered by the same `render_interval_bar` helper used in Panel 1, so the foil is a faithful instance of current practice rather than a weakened stand-in. The rightmost shows what ActionCue's process-transparency view reveals (which uncertainty rules fired, which class won precedence, the resulting cue and force).
 
-The comparison is the live equivalent of Figure 2 in the paper. `export_figures.py` also generates a static SVG composite of the three views for use as the paper figure.
+The live demo uses Streamlit columns for layout (above) while the paper figure (Figure 2) is generated by `render_three_way` in `viz/composite.py` (§6, "The two compositors"). Both paths share the same underlying renderers: `render_interval_bar` for the middle column, `render_cascade` for the right column. The Streamlit version adds column headers and case-selector affordances; the SVG composite version uses the same rendered components in a publication-ready layout.
 
 Case C is the recommended starting case for the comparison, aligning with the paper's §4.3 worked example. It holds the healthcare through-line and gives the sharpest contrast across the three displays: the confidence-only view reads as act (risk above threshold), the uncertainty-only view reads as borderline (interval crosses threshold), and the ActionCue view reveals the missing critical input as the primary issue (completion wins precedence over sensitivity, cue is complete/mandatory), reframing the interval-crossing as the supporting cue. The missing-data dimension is invisible in both other displays. Cross-domain cases (CR, DR) are reserved for the generativity view rather than the comparison.
 
@@ -1005,13 +1111,13 @@ def test_triggering_signal_attached_to_firings():
 | Week | Output | Verification |
 |---|---|---|
 | 1 | Models (with v2 fields), rules (with `signal_name`), engine (with constraint matrix and plurality assertion); all 11 tests passing | `pytest tests/` clean |
-| 2 | `viz/cascade.py` renders `render_cascade(case, cue, reveal, interactive)` with CSS and JS; `export_figures.py` produces three SVGs | Open exported SVGs in a browser; visual review against the locked design |
-| 3 | Four panels in Streamlit, case selector working, Panel 3 wraps `render_cascade` in `components.html`, rule registry tab; three-way comparison mode functional | Manual click-through of all 7 cases in both modes; hover and click affordances verified per band |
+| 2 | All four per-panel renderers in `viz/` (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`) plus the two compositors in `viz/composite.py` (`render_four_panel`, `render_three_way`); `export_figures.py` produces Figures 1, 2, and 3 plus the three §4.4 generativity figures | Open every exported SVG in a browser; visual review against the locked design and the 2×2 Z-scan layout for Figure 1 |
+| 3 | Streamlit panels wrap the per-panel renderers in `components.html`; case selector working; Panel 3 hover/click affordances functional; three-way comparison mode functional; rule registry tab | Manual click-through of all 7 cases in both modes; hover and click affordances verified per band |
 | 4 | Visual polish, force-level color tokens applied consistently, safety banner, README, demo recording | Demo runs end-to-end without explanation |
 
 After week 4, the prototype is presentation-ready. Remaining time goes to writing the paper.
 
-The build is now four weeks rather than three because Layer 4 (the cascade renderer) is genuine new implementation work, not a polish pass. Compressing this risks shipping a Panel 3 that does not actually demonstrate the Shneiderman-faithful on-demand behavior the paper claims.
+The build remains four weeks, but week 2's scope has expanded since v2: it now covers all four per-panel SVG renderers and both compositors, not the cascade alone. This is the work that gives every paper figure prototype-provenance — figures fall out of the same functions the demo calls.
 
 ---
 
