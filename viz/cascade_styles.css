@@ -17,8 +17,6 @@
 }
 .cascade .band-label { font-size: 14px; }
 .cascade .on-demand text { font-size: 12px; }
-.cascade .output-action { font-size: 18px; font-weight: bold; }
-.cascade .output-force  { font-size: 11px; letter-spacing: 0.05em; }
 
 /* --- Band background --- */
 .cascade .band-bg {
@@ -84,18 +82,66 @@
   fill: none;
 }
 
-/* --- Output box force tints (ordinal, blue luminance ramp) --- */
-.cascade .output[data-force="advisory"]  .output-bg { fill: #F0F4F8; stroke: #BFD3E6; }
-.cascade .output[data-force="strong"]    .output-bg { fill: #BFD3E6; stroke: #5B8AB8; }
-.cascade .output[data-force="mandatory"] .output-bg { fill: #5B8AB8; stroke: #1F3D5C; }
-.cascade .output[data-force="blocking"]  .output-bg { fill: #1F3D5C; stroke: #000000; }
+/* --- Output box (canonical cue display: action + force pill + via caption) ---
+ * No box background — the panel cell is the container. Action is the
+ * typographic hero; pill is the visual hero (force-tint at full strength).
+ * Force tints CVD-safe per §9:
+ *   advisory  #E8F1F8  pale blue
+ *   strong    #BFD3E6  mid blue
+ *   mandatory #F2C5A3  vermillion-tinted
+ *   blocking  #D55E00  deep vermillion (white text inside the pill)
+ */
+.cascade .output .cue-action {
+  font-size: 22px;
+  font-weight: 700;
+  fill: #1F3D5C;
+  letter-spacing: 0.02em;
+}
 
-/* Invert text on the darker output backgrounds so the label stays readable. */
-.cascade .output[data-force="mandatory"] text,
-.cascade .output[data-force="blocking"]  text { fill: #FFFFFF; }
+.cascade .output .cue-via {
+  font-size: 10px;
+  fill: #888888;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cascade .output .force-pill { stroke: none; }
+.cascade .output .force-pill[data-force="advisory"]  { fill: #E8F1F8; }
+.cascade .output .force-pill[data-force="strong"]    { fill: #BFD3E6; }
+.cascade .output .force-pill[data-force="mandatory"] { fill: #F2C5A3; }
+.cascade .output .force-pill[data-force="blocking"]  { fill: #D55E00; }
+
+.cascade .output .force-word {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+.cascade .output .force-word[data-force="advisory"]  { fill: #1F3D5C; }
+.cascade .output .force-word[data-force="strong"]    { fill: #1F3D5C; }
+.cascade .output .force-word[data-force="mandatory"] { fill: #1F3D5C; }
+.cascade .output .force-word[data-force="blocking"]  { fill: #FFFFFF; }
 
 
-/* --- On-demand text (rule id, rationale, signal label per band) --- */
-.cascade .on-demand-rule-id   { font-size: 10px; font-family: ui-monospace, "SF Mono", Consolas, monospace; fill: #555555; }
-.cascade .on-demand-rationale { font-size: 11px; fill: #333333; }
+/* --- On-demand text (signal label only; rationale is always-visible via
+       band-rationale, and the rule id is debugging-only — kept in
+       data-rationale on the band group but not visually rendered). --- */
 .cascade .on-demand-signal    { font-size: 10px; font-style: italic; fill: #555555; }
+
+/* --- Always-visible band rationale (fired bands only, both reveal modes) ---
+ * Pulls visual weight onto the cascade where the contribution lives.
+ * Fired bands get a rationale line directly under their class label so
+ * the reader sees *what* fired, not just *that* it fired.
+ */
+.cascade .band-rationale {
+  font-size: 11px;
+  fill: #333333;
+}
+
+/* --- Mute unfired bands ---
+ * Per the 2e cascade review: unfired bands are reference material
+ * ("the system considered this and it didn't fire"), not primary content.
+ * Dropping their opacity lets fired bands dominate the visual hierarchy
+ * — mirrors Panel 2's detected-rail / undetected-list distinction.
+ */
+.cascade .band[data-fired="false"] { opacity: 0.45; }
+.cascade .band[data-fired="false"] .band-label { fill: #555555; }
