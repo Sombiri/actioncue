@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from models import Case, Cue, RuleFiring
+from viz._common import bool_attr, wrap_text, render_style
 
 
 _CLASS_ORDER = ["validity", "completion", "sensitivity", "interpretation"]
@@ -37,10 +38,6 @@ def _band_y(index: int) -> int:
     return _BAND_Y0 + index * (_BAND_HEIGHT + _BAND_GAP)
 
 
-def _bool_attr(value: bool) -> str:
-    return "true" if value else "false"
-
-
 def _render_band(rule_class: str, fired: bool, is_winner: bool, y: int, firing: Optional[RuleFiring] = None) -> str:
     label = rule_class.capitalize()
     label_y = y + 30
@@ -51,15 +48,23 @@ def _render_band(rule_class: str, fired: bool, is_winner: bool, y: int, firing: 
         signal_label = html.escape(firing.triggering_signal.label, quote=True) if firing.triggering_signal else ""
         rule_id = html.escape(firing.rule.id, quote=True)
         data_attrs = f' data-rationale="{rationale}" data-signal-label="{signal_label}"'
+        text_x = _BAND_X + _ACCENT_WIDTH + 8
+        rationale_lines = wrap_text(rationale, max_chars=46)
+        rationale_tspans = "".join(
+            f'<tspan x="{text_x}" dy="{0 if i == 0 else 10}">{line}</tspan>'
+            for i, line in enumerate(rationale_lines)
+        )
+        rationale_y = y + 54
+        signal_y = rationale_y + 10 * len(rationale_lines) + 2
         on_demand_content = (
-            f'<text class="on-demand-rule-id" x="{_BAND_X + _ACCENT_WIDTH + 8}" y="{y + 50}">{rule_id}</text>\n'
-            f'<text class="on-demand-rationale" x="{_BAND_X + _ACCENT_WIDTH + 8}" y="{y + 62}">{rationale}</text>\n'
-            f'<text class="on-demand-signal" x="{_BAND_X + _ACCENT_WIDTH + 8}" y="{y + 74}">from signal: {signal_label}</text>'
+            f'<text class="on-demand-rule-id" x="{text_x}" y="{y + 44}">{rule_id}</text>\n'
+            f'<text class="on-demand-rationale" x="{text_x}" y="{rationale_y}">{rationale_tspans}</text>\n'
+            f'<text class="on-demand-signal" x="{text_x}" y="{signal_y}">from signal: {signal_label}</text>'
         )
     else:
         data_attrs = ""
         on_demand_content = ""
-    return f'''    <g class="band" data-class="{rule_class}" data-fired="{_bool_attr(fired)}" data-winner="{_bool_attr(is_winner)}"{data_attrs}>
+    return f'''    <g class="band" data-class="{rule_class}" data-fired="{bool_attr(fired)}" data-winner="{bool_attr(is_winner)}"{data_attrs}>
       <rect class="band-bg" x="{_BAND_X}" y="{y}" width="{_BAND_WIDTH}" height="{_BAND_HEIGHT}" />
       <rect class="band-accent" x="{_BAND_X}" y="{y}" width="{_ACCENT_WIDTH}" height="{_BAND_HEIGHT}" />
       <text class="band-label" x="{_BAND_X + _ACCENT_WIDTH + 8}" y="{label_y}">{label}</text>
@@ -90,7 +95,7 @@ def _render_force_scale(active_force: str) -> str:
         is_active = level == active_force
         tip = _FORCE_TOOLTIPS[level] + (" (current)" if is_active else "")
         ticks.append(
-            f'<g class="tick" data-level="{level}" data-active="{_bool_attr(is_active)}" data-tip="{tip}">'
+            f'<g class="tick" data-level="{level}" data-active="{bool_attr(is_active)}" data-tip="{tip}">'
             f'<line x1="{_SCALE_X}" y1="{tick_y}" x2="{_SCALE_X + 10}" y2="{tick_y}" '
             f'stroke="#333333" stroke-width="{2 if is_active else 1}" />'
             f'<text x="{_SCALE_X + 14}" y="{tick_y + 4}" font-size="11">{level}</text>'
@@ -100,11 +105,6 @@ def _render_force_scale(active_force: str) -> str:
     return f'''  <g class="force-scale">
 {ticks_svg}
   </g>'''
-
-
-def _render_style() -> str:
-    css = Path(__file__).with_name("cascade_styles.css").read_text()
-    return f'<style>{css}</style>'
 
 
 def _render_script() -> str:
@@ -150,17 +150,8 @@ def _render_resolution(winner_index: int, interactive: bool = True) -> str:
     end_x = _OUTPUT_X
     end_y = _OUTPUT_Y + _OUTPUT_HEIGHT // 2
     mid_x = (start_x + end_x) // 2
-
-    label_block = ""
-    if not interactive:
-        label_x = mid_x + 6
-        label_y = (start_y + end_y) // 2 - 6
-        label_block = (
-            f'\n    <text class="resolution-label" x="{label_x}" y="{label_y}" '
-            f'text-anchor="start">precedence resolution</text>'
-        )
     return f'''  <g class="resolution">
-    <path class="resolution-arrow" data-tip="highest-precedence fired class wins" d="M {start_x} {start_y} L {mid_x} {start_y} L {mid_x} {end_y} L {end_x} {end_y}" marker-end="url(#cascade-arrowhead)" />{label_block}
+    <path class="resolution-arrow" data-tip="highest-precedence fired class wins" d="M {start_x} {start_y} L {mid_x} {start_y} L {mid_x} {end_y} L {end_x} {end_y}" marker-end="url(#cascade-arrowhead)" />
   </g>'''
 
 
@@ -213,12 +204,11 @@ def render_cascade(
     output = _render_output(cue.primary_action, cue.primary_force)
     scale = _render_force_scale(cue.primary_force)
     safety = _render_safety_arrow(cue)
-    style = _render_style() if css else ""
+    style = render_style("cascade_styles.css") if css else ""
     script = _render_script() if interactive else ""
     defs = _render_defs()
 
-    return f'''<div class="cascade-wrapper">
-    <svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" class="cascade" data-reveal="{reveal}" xmlns="http://www.w3.org/2000/svg">
+    svg_body = f'''<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" class="cascade" data-reveal="{reveal}" xmlns="http://www.w3.org/2000/svg">
 {defs}
   {style}
   <g class="back-references"></g>
@@ -229,6 +219,8 @@ def render_cascade(
 {output}
 {scale}
 {safety}
-</svg>
-{script}
-</div>'''
+</svg>'''
+
+    if interactive:
+        return f'<div class="cascade-wrapper">\n{svg_body}\n{script}\n</div>'
+    return svg_body
