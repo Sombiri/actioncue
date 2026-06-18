@@ -1,8 +1,10 @@
 # ActionCue: Demo Build Specification (v2)
 
-A lightweight Streamlit prototype demonstrating the uncertainty-to-action binding framework. This document is the build specification — it defines the data models, the rule engine, the four-panel UI, the Panel 3 composition trace renderer, the three-way comparison mode, and the seven pre-built demonstration cases. It is detailed enough to drop into a Claude Code session as a build target.
+A lightweight Streamlit prototype demonstrating the uncertainty-to-action binding framework. This document is the build specification — it defines the data models, the rule engine, the three-panel UI (post-2f; was four-panel pre-2f), the Panel 3 composition trace renderer (which now also carries the cue display), the three-way comparison mode, and the seven pre-built demonstration cases. It is detailed enough to drop into a Claude Code session as a build target.
 
-**v2 changes (this revision).** Force-level vocabulary updated end-to-end (advisory, strong, mandatory, blocking). Constraint matrix added to the engine. Within-class plurality assertion added. `Rule` gains `signal_name` to bind each rule to its triggering Panel 2 signal; `RuleFiring` carries a `triggering_signal` field for the on-demand back-reference. Panel 3 specification fully rewritten as an annotated precedence cascade with explicit resolution step, rendered as inline SVG via `st.components.v1.html` with hover and click affordances (true overview-first-then-details-on-demand per Shneiderman 1996). All four panels are now rendered by pure SVG functions in `viz/` (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`); two compositors (`render_four_panel`, `render_three_way`) assemble per-panel SVGs into Figures 1 and 2 in a 2×2 Z-scan grid and a three-column comparison respectively. The Streamlit panels are thin wrappers around these renderers (single source of truth: every paper figure is produced by code the demo also runs). Three-way comparison mode added (confidence-only / data-level interval bar / ActionCue compact); the middle column reuses `render_interval_bar` from `viz/case_input.py` so the data-level foil is a faithful instance of current practice. `CASE_DR` risk interval corrected so sensitivity rule actually fires. Tests expanded for constraint validation and plurality assertion. Build sequence remains four weeks; week-2 scope now covers all four per-panel renderers and both compositors.
+**v2 changes (prior revision).** Force-level vocabulary updated end-to-end (advisory, strong, mandatory, blocking). Constraint matrix added to the engine. Within-class plurality assertion added. `Rule` gains `signal_name` to bind each rule to its triggering Panel 2 signal; `RuleFiring` carries a `triggering_signal` field for the on-demand back-reference. Panel 3 specification fully rewritten as an annotated precedence cascade with explicit resolution step, rendered as inline SVG via `st.components.v1.html` with hover and click affordances (true overview-first-then-details-on-demand per Shneiderman 1996). All four panels are now rendered by pure SVG functions in `viz/` (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`); two compositors (`render_four_panel`, `render_three_way`) assemble per-panel SVGs into Figures 1 and 2 in a 2×2 Z-scan grid and a three-column comparison respectively. The Streamlit panels are thin wrappers around these renderers (single source of truth: every paper figure is produced by code the demo also runs). Three-way comparison mode added (confidence-only / data-level interval bar / ActionCue compact); the middle column reuses `render_interval_bar` from `viz/case_input.py` so the data-level foil is a faithful instance of current practice. `CASE_DR` risk interval corrected so sensitivity rule actually fires. Tests expanded for constraint validation and plurality assertion. Build sequence remains four weeks; week-2 scope now covers all four per-panel renderers and both compositors.
+
+**v3 changes (current revision, 2f refactor).** Panel 4 collapsed into Panel 3: `viz/cue_output.py` and `viz/cue_output_styles.css` deleted, and `render_cascade` now renders the cue display (action word + force-tint pill + "via {rule_class}" caption + safety banner) inline alongside the bands. The vertical force scale on the right of the cascade is replaced by a horizontal force strip below the bands (advisory · strong · mandatory · blocking, with the active level tinted and a left-to-right vermillion arrow underneath when the safety modifier lifted the force). `render_four_panel` is now a three-panel composite (case input + signals top row, full-width cascade bottom row) at 720×760; function name kept for backward compat. `render_cascade`'s `include_output_box` and `include_force_scale` parameters were removed — the cascade always renders both. Three panel renderers remain (`render_case_input`, `render_signals`, `render_cascade`). Figure 3 reveal="all" overlap bug fixed by dropping the duplicate on-demand rationale tspan and the debugging-only rule-id text.
 
 ---
 
@@ -30,23 +32,24 @@ actioncue/
 │   ├── __init__.py
 │   ├── healthcare.py            # Cases A–E
 │   └── cross_domain.py          # Cases CR (credit), DR (disaster)
-├── ui/
+├── ui/                          # Streamlit wrappers — Week 3 scope
 │   ├── __init__.py
 │   ├── case_input.py            # Panel 1 wrapper (thin; calls viz/case_input)
 │   ├── signals.py               # Panel 2 wrapper (thin; calls viz/signals)
-│   ├── composition.py           # Panel 3 — wraps viz/cascade in components.v1.html
-│   ├── cue_output.py            # Panel 4 wrapper (thin; calls viz/cue_output)
+│   ├── composition.py           # Panel 3 — wraps viz/cascade (which now carries the cue display)
 │   ├── comparison.py            # Three-way comparison mode wrapper (thin; calls viz/composite)
 │   └── rule_table.py            # The visible rule registry tab
 ├── viz/
 │   ├── __init__.py
-│   ├── case_input.py            # render_case_input(case) -> svg string  (includes interval bar)
+│   ├── _common.py               # bool_attr, wrap_text, render_style helpers shared by panel renderers
+│   ├── case_input.py            # render_case_input(case), render_interval_bar(case) -> svg string
+│   ├── case_input_styles.css    # Scoped CSS for .case-input and .interval-bar
 │   ├── signals.py               # render_signals(case) -> svg string
-│   ├── cascade.py               # render_cascade(case, cue, options) -> svg string
-│   ├── cue_output.py            # render_cue_output(cue) -> svg string
-│   ├── composite.py             # render_four_panel(case, cue), render_three_way(case, cue) -> svg
-│   ├── cascade_styles.css       # SVG-scoped CSS (force colors, hover states)
-│   └── cascade_interact.js      # Hover and click handlers
+│   ├── signals_styles.css       # Scoped CSS for .signals
+│   ├── cascade.py               # render_cascade(case, cue, options) -> svg string (includes the cue display)
+│   ├── cascade_styles.css       # Scoped CSS for .cascade (bands, force strip, output box, safety banner)
+│   ├── cascade_interact.js      # Hover and click handlers
+│   └── composite.py             # render_four_panel(case, cue), render_three_way(case, cue) -> svg
 ├── figures/                     # Exported paper-ready SVGs (figure_1.svg, figure_2.svg, figure_3.svg)
 ├── export_figures.py            # Offline script: calls viz/composite and viz/cascade for paper figures
 ├── tests/
@@ -55,7 +58,7 @@ actioncue/
 └── README.md
 ```
 
-The `viz/` package holds all SVG-emitting code. Each panel has a pure SVG renderer (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`) that returns an SVG fragment with a known fixed `viewBox`. The Streamlit panels in `ui/` are thin wrappers: each calls its `viz/` counterpart and passes the SVG to `components.v1.html`. The compositors in `viz/composite.py` assemble the per-panel SVGs into the two paper figures (four-panel grid; three-way comparison).
+The `viz/` package holds all SVG-emitting code. Three panel renderers (`render_case_input`, `render_signals`, `render_cascade`) return SVG fragments with known fixed `viewBox`es. `render_cascade` is the load-bearing renderer and now carries the cue display (action + force pill + via + horizontal force strip + safety banner) inline alongside the bands — there is no separate `render_cue_output`. The Streamlit panels in `ui/` are thin wrappers: each calls its `viz/` counterpart and passes the SVG to `components.v1.html`. The compositors in `viz/composite.py` assemble the per-panel SVGs into the two paper figures (three-panel composite for Figures 1 and 4; three-way comparison for Figure 2).
 
 This is the single-source-of-truth design carried through: the same code that renders Panel 3 in the live demo also produces Figure 3 in the paper; the same code that renders Panel 1 also contributes its sub-SVG to Figure 1 and to the middle column of Figure 2 (via `render_interval_bar`, defined inside `viz/case_input.py`). Nothing in the figure pipeline runs code the demo does not also run.
 
@@ -378,9 +381,11 @@ For the seven demo cases below, no two rules of the same class fire simultaneous
 
 ---
 
-## 5. The four panels
+## 5. The three panels
 
-Layout: `st.set_page_config(layout="wide")`. Use `st.columns([1, 1, 1.4, 1.2])` so Panel 3 (composition trace) gets the largest column; the SVG renderer needs the room.
+Layout: `st.set_page_config(layout="wide")`. Use a two-row layout: top row split into two columns of equal width for Panel 1 (case input) and Panel 2 (signals); bottom row a single full-width column for Panel 3 (composition trace, which now carries the cue display itself).
+
+> **2f redesign note (Week 2).** The earlier four-panel design had a separate Panel 4 ("Final action cue"). The 2f refactor collapsed Panel 4 into Panel 3 — the cascade renderer now produces the canonical cue display (action word + force-tint pill + "via {rule_class}" caption + safety banner) inline alongside the bands. The vertical force scale was replaced with a horizontal force strip below the bands. The result is one coherent visual unit ("what fired, how it resolved, what the cue is") rather than a cascade and a peer panel that restated each other. References to "Panel 4" / `render_cue_output` / four columns elsewhere in this spec are vestigial and should be read in that light.
 
 A mode selector at the top:
 
@@ -441,28 +446,26 @@ Group into rows:
 
 For each signal, show a check/x-style indicator and the detail text when detected. Give each Panel 2 row a stable HTML id (`signal-row-{name}`) so the Panel 3 interaction layer can highlight the corresponding row when a cascade band is hovered or clicked.
 
-### Panel 3: Composition trace
+### Panel 3: Composition trace + cue
 
-Panel 3 is the load-bearing visualization. Its specification is detailed in §6 (Composition trace renderer). Within `ui/composition.py`, the panel:
+Panel 3 is the load-bearing visualization. Its specification is detailed in §6 (Composition trace renderer). Per the 2f redesign it now carries the cue display itself, not just the cascade. Within `ui/composition.py`, the panel:
 
 1. Calls `render_cascade(case, cue, options)` from `viz/cascade.py` with options derived from Streamlit state.
 2. Wraps the returned SVG (plus the scoped CSS and the JS interaction layer) in a single HTML string.
 3. Renders the wrapped HTML via `st.components.v1.html(html_string, height=560)`.
 
-Below the cascade, a single-line summary renders:
+The cascade SVG itself includes, inline:
 
-- A "Safety modifier applied" banner if `cue.safety_modified == True`, naming the reason and the force change ("mandatory → blocking, due to high harm")
-- If no rules fired: a single line "No rules fired; default cue: proceed / advisory"
+- The four bands (validity / completion / sensitivity / interpretation).
+- The resolution arrow from the winning band into the output box.
+- The output box, which carries the canonical cue display:
+  - **Primary action** — large, bold ("COMPLETE", "ESCALATE", …).
+  - **Force pill** — force-tint background (advisory pale-blue, strong mid-blue, mandatory vermillion-tint, blocking deep-vermillion).
+  - **"via {rule_class}"** caption beneath the pill when a rule won.
+- The horizontal force strip below the bands (four cells: advisory · strong · mandatory · blocking) with the active level tinted; when `cue.safety_modified == True`, a left-to-right vermillion arrow underneath spans from `base_force` to `primary_force`.
+- The safety banner at the bottom (vermillion accent strip + "Force raised from X to Y" + "Reason: …") shown only when `cue.safety_modified == True`.
 
-### Panel 4: Final action cue
-
-The composed output. Visual hierarchy:
-
-- **Primary action** — large, bold, color-coded by force level
-- **Force pill** — small badge in force-color (advisory grey, strong blue, mandatory orange, blocking red)
-- **Responsible actor** — italicized line ("for: clinician at point of care")
-- **Rationale** — paragraph beneath
-- **Supporting cues** — smaller block beneath, each as `[force] action — rationale` line
+If no rules fired the cascade still renders the output box (e.g., "PROCEED" + advisory pill, no "via" line), and the strip shows advisory as the active level.
 
 ### Side: Rule registry tab
 
@@ -505,29 +508,29 @@ def render_cascade(
 
 ### SVG structure
 
-The SVG root has `viewBox="0 0 480 520"` and contains the following groups, in this z-order:
+> **2f redesign.** The cascade SVG now has `viewBox="0 0 720 500"` (was 480×520) and absorbs what was Panel 4 in the original design. The vertical force scale on the right is replaced by a horizontal force strip below the bands; the output box renders the cue display (action word + force-tint pill + "via {rule_class}" caption); a safety banner sits at the bottom when `cue.safety_modified == True`.
 
 ```
-<svg viewBox="0 0 480 520" class="cascade">
+<svg viewBox="0 0 720 500" class="cascade">
   <defs>
-    <!-- markers for resolution arrow head, etc. -->
+    <!-- markers for resolution arrow head -->
   </defs>
 
   <g class="back-references">
-    <!-- left-entering lines from Panel 2 signal id to each fired band -->
-    <!-- visible only when the band is hovered, focused, or expanded -->
+    <!-- placeholder for cross-panel highlight lines from Panel 2 signal ids
+         to fired bands; wired in Week 3 -->
   </g>
 
   <g class="cascade-bands">
-    <g class="band" data-class="validity" data-fired="true|false" data-winner="true|false">
-      <rect class="band-bg" x="40" y="20" width="280" height="80" />
-      <text class="band-label" x="50" y="50">Validity</text>
-      <g class="status">
-        <!-- fired indicator (filled dot) or not-fired indicator (open dot) -->
-      </g>
+    <g class="band" data-class="validity" data-fired="true|false" data-winner="true|false"
+       data-rationale="..." data-signal-label="...">
+      <rect class="band-bg" x="40" y="20" width="320" height="80" />
+      <rect class="band-accent" x="40" y="20" width="6" height="80" />
+      <text class="band-label" x="54" y="50">Validity</text>
+      <text class="band-rationale" x="54" y="68">Critical inputs missing: ...</text>
+      <g class="status"><circle .../></g>
       <g class="on-demand" aria-hidden="true">
-        <!-- rule-level reveal: rule name, rationale, triggering signal label -->
-        <!-- hidden when reveal="none", visible when reveal="all" OR data-expanded="true" -->
+        <text class="on-demand-signal">from signal: ...</text>
       </g>
     </g>
     <g class="band" data-class="completion" ...>...</g>
@@ -536,20 +539,35 @@ The SVG root has `viewBox="0 0 480 520"` and contains the following groups, in t
   </g>
 
   <g class="resolution">
-    <path class="resolution-arrow" d="M ..." marker-end="url(#arrowhead)" />
-    <text class="resolution-label" x="..." y="...">precedence resolution</text>
+    <path class="resolution-arrow" d="M ..." marker-end="url(#cascade-arrowhead)" />
   </g>
 
-  <g class="output">
-    <rect class="output-bg" x="340" y="220" width="120" height="80" />
-    <text class="output-action" x="400" y="250">escalate</text>
-    <text class="output-force" x="400" y="275">STRONG</text>
+  <g class="output" data-force="mandatory">
+    <text class="cue-action">COMPLETE</text>
+    <rect class="force-pill" data-force="mandatory" rx="12" />
+    <text class="force-word" data-force="mandatory">MANDATORY</text>
+    <text class="cue-via">via completion</text>
   </g>
 
-  <g class="force-scale">
-    <!-- vertical scale on the right: advisory, strong, mandatory, blocking -->
-    <!-- assigned level marked with a wedge or filled tick -->
-    <!-- safety-modifier escalation rendered as an upward arrow between original and final level -->
+  <g class="force-strip">
+    <!-- four cells in a row: advisory · strong · mandatory · blocking -->
+    <!-- active cell is force-tinted with bold label -->
+    <g class="strip-cell" data-level="advisory"  data-active="false">...</g>
+    <g class="strip-cell" data-level="strong"    data-active="false">...</g>
+    <g class="strip-cell" data-level="mandatory" data-active="true">...</g>
+    <g class="strip-cell" data-level="blocking"  data-active="false">...</g>
+    <!-- when cue.safety_modified, a vermillion arrow under the strip from
+         base_force cell center to primary_force cell center -->
+    <g class="strip-safety" data-tip="...">
+      <path class="strip-safety-arrow" marker-end="url(#cascade-arrowhead)" />
+    </g>
+  </g>
+
+  <g class="safety-banner">
+    <!-- shown only when cue.safety_modified -->
+    <rect class="safety-bg" /> <rect class="safety-accent" />
+    <text class="safety-title">Force raised from strong to mandatory</text>
+    <text class="safety-detail">Reason: high harm</text>
   </g>
 </svg>
 ```
@@ -557,12 +575,14 @@ The SVG root has `viewBox="0 0 480 520"` and contains the following groups, in t
 Key encoding choices:
 
 - **Precedence as vertical position on a common scale.** Top-to-bottom ordering: validity, completion, sensitivity, interpretation. This is the strongest channel for ordered data (Cleveland and McGill 1984).
-- **Class encoded by position and reinforced by color.** Each band has a class-specific accent color in the left border.
-- **Fired vs not fired encoded by status indicator within each band.** Filled dot for fired; open dot for not fired.
-- **Winner distinguished by border weight and background tint.** `data-winner="true"` triggers the highlight in CSS.
-- **Resolution as an explicit visual event.** A labeled arrow runs from the winning band to the output element. The arrow is the visible *act* of composition, not an inference the viewer has to make.
-- **Force scale as a separate channel.** The four force levels live in a vertical scale on the right; the assigned level is marked. Safety-modifier escalation renders as an upward arrow on the scale from the rule's `base_force` to the modified `primary_force`.
-- **On-demand layer per band.** Each band has an inner `<g class="on-demand">` that contains the rule-level details: rule name, rationale, triggering signal label. Hidden by default (`opacity: 0`, `pointer-events: none`); revealed per-band by click (toggling `data-expanded="true"` on the band) or globally by `reveal="all"`.
+- **Class encoded by position and reinforced by color.** Each band has a class-specific accent color in the left border (Wong CVD-safe palette).
+- **Fired vs not fired encoded by opacity, accent fill, and a status indicator.** Unfired bands drop to 45% opacity with a muted label; fired bands stay at full opacity with rationale text visible.
+- **Winner distinguished by border weight on the band background.** `data-winner="true"` triggers the highlight in CSS.
+- **Resolution as an explicit visual event.** An arrow runs from the winning band's right edge into the output box's force pill (the pill is the visual hero of the cue display). The arrow is the visible *act* of composition, not an inference the viewer has to make.
+- **Cue display inline in the output box.** Large action word, force-tint pill (CVD-safe ordinal ramp: pale blue → mid blue → vermillion-tint → deep vermillion), small "via {rule_class}" caption beneath.
+- **Force vocabulary as a horizontal strip below the bands.** Four cells in reading order: advisory · strong · mandatory · blocking. The active cell takes the force tint at full strength + bold label. Safety-modifier lift renders as a left-to-right vermillion arrow underneath, spanning from the `base_force` cell to the `primary_force` cell.
+- **Safety banner for the textual rationale.** When the safety modifier raised the force, a banner below the strip carries the prose ("Force raised from X to Y" + "Reason: …"). The strip arrow shows *the lift*; the banner shows *why*.
+- **On-demand layer per band.** Each fired band has an inner `<g class="on-demand">` carrying the triggering signal label ("from signal: …"). Hidden by default (`opacity: 0`); revealed per-band by click (toggling `data-expanded="true"`) or globally by `reveal="all"`. Rationale is always visible — it is primary content of a fired band, not on-demand detail.
 
 ### Scoped CSS (`viz/cascade_styles.css`)
 
@@ -724,14 +744,11 @@ def render_signals(case: Case, *, width: int = 360, height: int = 220,
     explanation, decision context). Each row carries a stable id (`signal-row-{name}`)
     so the cascade's back-reference layer can target it."""
 
-# viz/cue_output.py
-def render_cue_output(cue: Cue, *, width: int = 360, height: int = 260,
-                      css: bool = True, interactive: bool = False) -> str:
-    """Panel 4 SVG: primary action (large), force pill, responsible actor, rationale,
-    supporting cue stack, safety-modifier banner when applicable."""
 ```
 
-All four panel renderers (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`) share the same calling convention: `(*, width, height, css, interactive)`. This uniformity is what makes the compositors trivial.
+> **2f redesign.** There is no `render_cue_output`. The cue display lives inside `render_cascade` (action word + force pill + via caption + horizontal force strip + safety banner all render inline as part of the cascade SVG). Earlier versions of this spec described a separate Panel 4 renderer; that file no longer exists.
+
+All three panel renderers (`render_case_input`, `render_signals`, `render_cascade`) share the same calling convention: `(*, width, height, css, interactive)`. This uniformity is what makes the compositors trivial.
 
 The Streamlit wrappers are correspondingly thin:
 
@@ -744,32 +761,38 @@ def render_panel_1(case):
     components.html(render_case_input(case, css=True, interactive=False), height=240)
 ```
 
-The same shape applies to `ui/signals.py`, `ui/composition.py` (which already wraps `render_cascade`), and `ui/cue_output.py`.
+The same shape applies to `ui/signals.py` and `ui/composition.py` (which wraps `render_cascade`).
 
 ### The two compositors
 
 ```python
 # viz/composite.py
 def render_four_panel(case: Case, cue: Cue, *,
-                      width: int = 960, height: int = 880,
+                      width: int = 720, height: int = 760,
                       css: bool = True, interactive: bool = False) -> str:
-    """Figure 1: 2x2 grid of the four panels, Z-scan reading order.
+    """Figure 1: three-panel composite (function name kept for backward compat).
 
         +---------------+---------------+
-        |  Panel 1      |  Panel 2      |
-        |  Case input   |  Signals      |
+        |  Panel 1      |  Panel 2      |   y=0,   240 tall
+        |  Case input   |  Signals      |   (360 wide each)
         +---------------+---------------+
-        |  Panel 3      |  Panel 4      |
-        |  Cascade      |  Cue output   |
-        +---------------+---------------+
+        |                               |
+        |  Panel 3 — cascade            |   y=240, 520 tall
+        |  (carries the cue inline:     |   (720 wide, full row)
+        |   action, force pill, via,    |
+        |   force strip, safety banner) |
+        |                               |
+        +-------------------------------+
 
-    Bottom row is taller than the top row (~520 vs ~360) because the cascade's
-    four bands and the cue output's stack need vertical room. Each sub-SVG is
-    wrapped in <g transform="translate(...)"> and its inner viewBox preserved.
+    Bottom row is taller than the top row because the cascade carries
+    four bands plus the force strip plus the safety banner. Each sub-SVG
+    is wrapped in <g transform="translate(...)"> with its inner viewBox
+    preserved. The cascade is rendered at its native standalone width
+    (720), so its internal layout is identical here and in Figure 3.
     """
 
 def render_three_way(case: Case, cue: Cue, *,
-                     width: int = 1080, height: int = 520,
+                     width: int = 1080, height: int = 560,
                      css: bool = True, interactive: bool = False) -> str:
     """Figure 2: three side-by-side displays on the same case.
 
@@ -781,7 +804,9 @@ def render_three_way(case: Case, cue: Cue, *,
     Left column: a single-number risk-score card with the threshold beneath
     (rendered as a small SVG inside composite.py — no separate viz/ module).
     Middle column: render_interval_bar(case) — the same helper Panel 1 uses.
-    Right column: render_cascade(case, cue, reveal="none", css=True, interactive=False).
+    Right column: render_cascade(case, cue, reveal="none", css=False, interactive=False)
+    — the standalone cascade, which now includes the cue display, force
+    strip, and safety banner.
     """
 ```
 
@@ -808,7 +833,7 @@ def write(svg: str, path: str) -> None:
 if __name__ == "__main__":
     cue_c = compose_cue(CASE_C, RULES)
 
-    # Figure 1: four-panel composite on Case C
+    # Figure 1: three-panel composite on Case C (post-2f; function name kept)
     write(render_four_panel(CASE_C, cue_c, css=True, interactive=False),
           "figures/figure_1_four_panel.svg")
 
@@ -822,7 +847,7 @@ if __name__ == "__main__":
           "figures/figure_3_panel_3_detailed.svg")
 
     # Section 4.4 generativity (optional small-multiples): cross-domain cases.
-    # Each renders the four-panel composite so the reader can compare across cases.
+    # Each renders the three-panel composite so the reader can compare across cases.
     cue_a  = compose_cue(CASE_A,  RULES)
     cue_cr = compose_cue(CASE_CR, RULES)
     cue_dr = compose_cue(CASE_DR, RULES)
@@ -840,7 +865,7 @@ Figures in the paper come from this export, guaranteeing prototype-figure proven
 
 ## 7. Three-way comparison mode
 
-When the top-level mode selector is set to "Three-way comparison", the layout changes from four columns to three side-by-side comparison columns. The case selector still drives all three views; only the rendering changes.
+When the top-level mode selector is set to "Three-way comparison", the layout changes from the three-panel ActionCue view to three side-by-side comparison columns. The case selector still drives all three views; only the rendering changes.
 
 ```python
 def render_comparison(case, cue):
@@ -970,7 +995,7 @@ CASE_DR = Case(
 | mandatory | `#FFF3E0` | `#E65100` | response required |
 | blocking | `#FFEBEE` | `#C62828` | action prevented |
 
-These tokens are mirrored in `viz/cascade_styles.css` so the SVG output box matches Panel 4's pill colors.
+These tokens live in `viz/cascade_styles.css` as the force-tint ramp on the cascade's inline output box force pill.
 
 ### Class accent colors (for Panel 3 cascade bands)
 
@@ -986,13 +1011,13 @@ These tokens are mirrored in `viz/cascade_styles.css` so the SVG output box matc
 - Page in wide mode
 - Header: mode selector (ActionCue full / Three-way comparison), short tagline
 - Case selector
-- Main: four columns in ActionCue mode (`[1, 1, 1.4, 1.2]`); three columns in comparison mode (equal)
+- Main: two-row layout in ActionCue mode (case input + signals side by side on top, full-width cascade-with-cue on the bottom); three columns in comparison mode (equal headers, but the cascade column is wider than the data-level columns per §6 caveat)
 - Below: rule registry tab
 - No clinical-system styling — the prototype should look like a research demo, not an EHR
 
 ### Typography
 
-Streamlit defaults are fine. Use `st.markdown` with a small amount of HTML for the primary action's emphasis. Keep monospace for rule IDs only. Inside the SVG, use a clean sans-serif (`font-family: -apple-system, "Segoe UI", Roboto, sans-serif`) and a single size hierarchy (band labels 14px, on-demand text 12px, output action 18px bold).
+Streamlit defaults are fine. Inside the SVG, use a clean sans-serif (`font-family: -apple-system, "Segoe UI", Roboto, sans-serif`) and a single size hierarchy: band labels 14px, band rationale 11px, on-demand signal 10px italic, output action 22px bold, force-word inside pill 11px bold, force-strip cell labels 11px uppercase, safety banner title 11px, safety detail 10px.
 
 ---
 
@@ -1111,13 +1136,13 @@ def test_triggering_signal_attached_to_firings():
 | Week | Output | Verification |
 |---|---|---|
 | 1 | Models (with v2 fields), rules (with `signal_name`), engine (with constraint matrix and plurality assertion); all 11 tests passing | `pytest tests/` clean |
-| 2 | All four per-panel renderers in `viz/` (`render_case_input`, `render_signals`, `render_cascade`, `render_cue_output`) plus the two compositors in `viz/composite.py` (`render_four_panel`, `render_three_way`); `export_figures.py` produces Figures 1, 2, and 3 plus the three §4.4 generativity figures | Open every exported SVG in a browser; visual review against the locked design and the 2×2 Z-scan layout for Figure 1 |
+| 2 | Three per-panel renderers in `viz/` (`render_case_input`, `render_signals`, `render_cascade`) plus the two compositors in `viz/composite.py` (`render_four_panel`, `render_three_way`); `export_figures.py` produces Figures 1, 2, and 3 plus the three §4.4 generativity figures. **Note (2f):** the cascade absorbs the cue display; there is no separate `render_cue_output`. The composite is three-panel, not 2×2 four-panel. | Open every exported SVG in a browser; visual review against the §6 SVG structure and the three-panel layout for Figure 1 |
 | 3 | Streamlit panels wrap the per-panel renderers in `components.html`; case selector working; Panel 3 hover/click affordances functional; three-way comparison mode functional; rule registry tab | Manual click-through of all 7 cases in both modes; hover and click affordances verified per band |
 | 4 | Visual polish, force-level color tokens applied consistently, safety banner, README, demo recording | Demo runs end-to-end without explanation |
 
 After week 4, the prototype is presentation-ready. Remaining time goes to writing the paper.
 
-The build remains four weeks, but week 2's scope has expanded since v2: it now covers all four per-panel SVG renderers and both compositors, not the cascade alone. This is the work that gives every paper figure prototype-provenance — figures fall out of the same functions the demo calls.
+The build remains four weeks. Week 2's scope (post-2f) covers three per-panel SVG renderers — `render_case_input`, `render_signals`, and a `render_cascade` that absorbs what was originally Panel 4's cue display — and both compositors. This is the work that gives every paper figure prototype-provenance — figures fall out of the same functions the demo calls.
 
 ---
 
