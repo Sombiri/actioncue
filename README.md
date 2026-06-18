@@ -91,15 +91,3 @@ Running `python export_figures.py` writes six SVG + PDF pairs and one `index.htm
 | `figure_4_generativity_dr.svg` | CASE_DR composite — disaster forecasting, safety modifier lifts force. |
 
 Every figure the paper shows is produced by code the live demo also runs (single source of truth).
-
-## Further reading
-
-- **[SPEC.md](SPEC.md)** — full build specification: data models, the rule engine, the cascade renderer, the three-panel layout, the seven cases, the visual design tokens.
-- **[CLAUDE.md](CLAUDE.md)** — active phase, collaboration mode, file-by-file scope for the current build week.
-
-## Status
-
-- **Week 1 — engine + tests:** done. `models.py`, `rules.py`, `engine.py`, the cases, and the 11 engine tests are stable.
-- **Week 2 — visualization + figure export:** done. Three panel renderers in `viz/` (case input, signals, cascade-with-cue), two compositors in `viz/composite.py`, and `export_figures.py` producing the six paper figures.
-- **Week 3 — Streamlit UI:** in progress. `app.py` and `ui/` not yet present.
-- **Week 4 — visual polish, README, demo recording, paper integration.**
