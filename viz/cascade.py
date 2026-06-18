@@ -25,9 +25,9 @@ _BAND_Y0 = 20
 _ACCENT_WIDTH = 6
 
 _OUTPUT_X = 420
-_OUTPUT_Y = 150
-_OUTPUT_WIDTH = 130
-_OUTPUT_HEIGHT = 80
+_OUTPUT_Y = 140
+_OUTPUT_WIDTH = 140
+_OUTPUT_HEIGHT = 100
 
 _SCALE_X = 620
 _SCALE_Y0 = 20
@@ -43,31 +43,43 @@ def _render_band(rule_class: str, fired: bool, is_winner: bool, y: int, firing: 
     label_y = y + 30
     status_cx = _BAND_X + _BAND_WIDTH - 20
     status_cy = y + _BAND_HEIGHT // 2
+    text_x = _BAND_X + _ACCENT_WIDTH + 8
     if firing is not None:
         rationale = html.escape(firing.rendered_rationale, quote=True)
         signal_label = html.escape(firing.triggering_signal.label, quote=True) if firing.triggering_signal else ""
-        rule_id = html.escape(firing.rule.id, quote=True)
         data_attrs = f' data-rationale="{rationale}" data-signal-label="{signal_label}"'
-        text_x = _BAND_X + _ACCENT_WIDTH + 8
         rationale_lines = wrap_text(rationale, max_chars=46)
         rationale_tspans = "".join(
-            f'<tspan x="{text_x}" dy="{0 if i == 0 else 10}">{line}</tspan>'
+            f'<tspan x="{text_x}" dy="{0 if i == 0 else 11}">{line}</tspan>'
             for i, line in enumerate(rationale_lines)
         )
-        rationale_y = y + 54
-        signal_y = rationale_y + 10 * len(rationale_lines) + 2
+        # Always-visible rationale sits just below the band label. Visible in
+        # both reveal="none" (Figure 1) and reveal="all" (Figure 3) — it's the
+        # primary content of a fired band, not on-demand.
+        band_rationale = (
+            f'<text class="band-rationale" x="{text_x}" y="{y + 48}">{rationale_tspans}</text>'
+        )
+        # On-demand layer carries only what's reader-useful and not already
+        # shown: the triggering-signal label. Rationale is in band_rationale
+        # above. Rule id (e.g. "completion_missing_critical") is a debugging
+        # identifier, not reader content, so we drop it from the visible
+        # on-demand layer — it stays in data-rationale on the band group for
+        # the interactive layer's tooltip if needed.
+        # Position: just below band-rationale, computed from the actual
+        # number of wrapped rationale lines so it never overflows the band.
+        signal_y = y + 48 + 11 * max(1, len(rationale_lines)) + 6
         on_demand_content = (
-            f'<text class="on-demand-rule-id" x="{text_x}" y="{y + 44}">{rule_id}</text>\n'
-            f'<text class="on-demand-rationale" x="{text_x}" y="{rationale_y}">{rationale_tspans}</text>\n'
             f'<text class="on-demand-signal" x="{text_x}" y="{signal_y}">from signal: {signal_label}</text>'
         )
     else:
         data_attrs = ""
+        band_rationale = ""
         on_demand_content = ""
     return f'''    <g class="band" data-class="{rule_class}" data-fired="{bool_attr(fired)}" data-winner="{bool_attr(is_winner)}"{data_attrs}>
       <rect class="band-bg" x="{_BAND_X}" y="{y}" width="{_BAND_WIDTH}" height="{_BAND_HEIGHT}" />
       <rect class="band-accent" x="{_BAND_X}" y="{y}" width="{_ACCENT_WIDTH}" height="{_BAND_HEIGHT}" />
-      <text class="band-label" x="{_BAND_X + _ACCENT_WIDTH + 8}" y="{label_y}">{label}</text>
+      <text class="band-label" x="{text_x}" y="{label_y}">{label}</text>
+      {band_rationale}
       <g class="status">
         <circle cx="{status_cx}" cy="{status_cy}" r="6" />
       </g>
@@ -77,14 +89,47 @@ def _render_band(rule_class: str, fired: bool, is_winner: bool, y: int, firing: 
     </g>'''
 
 
-def _render_output(action: str, force: str) -> str:
+def _render_output(action: str, force: str, rule_class: Optional[str] = None) -> str:
+    """Render the cascade's canonical cue display (now absorbing what was
+    Panel 4 in earlier iterations): action word + force-tint pill + optional
+    "via {rule_class}" caption.
+
+    The action is the typographic hero; the pill is the visual hero (force
+    tint at full strength); the "via" caption anchors the cue to the band
+    that produced it.
+    """
     text_x = _OUTPUT_X + _OUTPUT_WIDTH // 2
-    action_y = _OUTPUT_Y + 35
-    force_y = _OUTPUT_Y + 60
-    return f'''  <g class="output" data-force="{force}">
-    <rect class="output-bg" x="{_OUTPUT_X}" y="{_OUTPUT_Y}" width="{_OUTPUT_WIDTH}" height="{_OUTPUT_HEIGHT}" fill="#FAFAFA" stroke="#333333" stroke-width="1" />
-    <text class="output-action" x="{text_x}" y="{action_y}" text-anchor="middle" font-weight="bold">{action}</text>
-    <text class="output-force" x="{text_x}" y="{force_y}" text-anchor="middle">{force.upper()}</text>
+
+    # Action word at the top of the output box.
+    action_y = _OUTPUT_Y + 28
+
+    # Force pill below the action.
+    pill_w = _OUTPUT_WIDTH - 24            # 12-unit inset on each side
+    pill_x = _OUTPUT_X + 12
+    pill_top_y = _OUTPUT_Y + 42
+    pill_h = 24
+    pill_text_y = pill_top_y + 16
+
+    # "via {rule_class}" caption at the bottom (only when a rule won).
+    via_y = pill_top_y + pill_h + 18
+
+    force_attr = html.escape(force, quote=True)
+    action_word = html.escape(action.upper())
+    force_word = html.escape(force.upper())
+
+    if rule_class is not None:
+        via = (
+            f'    <text class="cue-via" x="{text_x}" y="{via_y}" text-anchor="middle">'
+            f'via {html.escape(rule_class)}</text>'
+        )
+    else:
+        via = ""
+
+    return f'''  <g class="output" data-force="{force_attr}">
+    <text class="cue-action" x="{text_x}" y="{action_y}" text-anchor="middle">{action_word}</text>
+    <rect class="force-pill" data-force="{force_attr}" x="{pill_x}" y="{pill_top_y}" width="{pill_w}" height="{pill_h}" rx="12" />
+    <text class="force-word" data-force="{force_attr}" x="{text_x}" y="{pill_text_y}" text-anchor="middle">{force_word}</text>
+{via}
   </g>'''
 
 
@@ -144,11 +189,29 @@ def _render_safety_arrow(cue: Cue) -> str:
     )
 
 
-def _render_resolution(winner_index: int, interactive: bool = True) -> str:
+def _render_resolution(winner_index: int, interactive: bool = True, include_output_box: bool = True, include_force_scale: bool = True) -> str:
     start_x = _BAND_X + _BAND_WIDTH
     start_y = _band_y(winner_index) + _BAND_HEIGHT // 2
-    end_x = _OUTPUT_X
-    end_y = _OUTPUT_Y + _OUTPUT_HEIGHT // 2
+    if include_output_box:
+        end_x = _OUTPUT_X
+        # Land on the force pill's vertical center (pill is the visual hero
+        # of the output box and reads as the "endpoint" of the resolution).
+        end_y = _OUTPUT_Y + 42 + 12  # pill_top_y + pill_h/2
+    else:
+        # No output box: straight horizontal arrow at the winner-band mid-y.
+        # When the force scale is also gone, the arrow can extend further
+        # right (no scale column to clear), making the handoff to Panel 4
+        # in the composite feel confident rather than stubby.
+        end_y = start_y
+        if include_force_scale:
+            # Scale still present: keep the arrow short so it doesn't run
+            # into the scale ticks.
+            end_x = _OUTPUT_X - 30
+        else:
+            # No scale either: extend ~140 units past the bands' right edge,
+            # close to where the cascade's effective right boundary sits in
+            # the composite (Panel 4 picks up immediately to the right).
+            end_x = start_x + 140
     mid_x = (start_x + end_x) // 2
     return f'''  <g class="resolution">
     <path class="resolution-arrow" data-tip="highest-precedence fired class wins" d="M {start_x} {start_y} L {mid_x} {start_y} L {mid_x} {end_y} L {end_x} {end_y}" marker-end="url(#cascade-arrowhead)" />
@@ -164,6 +227,8 @@ def render_cascade(
     height: int = 400,
     css: bool = True,
     interactive: bool = True,
+    include_output_box: bool = True,
+    include_force_scale: bool = True,
 ) -> str:
     """
     Return a complete SVG fragment that renders the composition trace for `case` and `cue`.
@@ -171,6 +236,16 @@ def render_cascade(
     - reveal="none" -> compact variant (Figures 1 and 2).
     - reveal="all"  -> detailed variant with on-demand layer expanded (Figure 3).
     - css / interactive are placeholders in 2a; wired in 2b / 2c.
+    - include_output_box: when False, suppresses the output rectangle and
+      truncates the resolution arrow so it ends mid-air pointing right.
+      Used by the four-panel compositor so Panel 4 carries the canonical
+      action+force display (resolves Panel 3/4 redundancy). Default True
+      preserves standalone behavior (Figure 3, the live demo).
+    - include_force_scale: when False, suppresses the vertical force scale
+      and the safety-modifier arrow (the safety arrow loses its anchor
+      without the scale). Used by the four-panel compositor; Panel 4's
+      force pill + safety banner cover this data canonically. Default True
+      preserves standalone behavior.
     """
     winner_class = (
         cue.primary_firing.rule.rule_class if cue.primary_firing else None
@@ -197,13 +272,19 @@ def render_cascade(
     )
 
     if winner_class is not None:
-        resolution = _render_resolution(_CLASS_ORDER.index(winner_class), interactive=interactive)
+        resolution = _render_resolution(
+            _CLASS_ORDER.index(winner_class),
+            interactive=interactive,
+            include_output_box=include_output_box,
+            include_force_scale=include_force_scale,
+        )
     else:
         resolution = '  <g class="resolution"></g>'
 
-    output = _render_output(cue.primary_action, cue.primary_force)
-    scale = _render_force_scale(cue.primary_force)
-    safety = _render_safety_arrow(cue)
+    primary_class = cue.primary_firing.rule.rule_class if cue.primary_firing else None
+    output = _render_output(cue.primary_action, cue.primary_force, primary_class) if include_output_box else ""
+    scale = _render_force_scale(cue.primary_force) if include_force_scale else ""
+    safety = _render_safety_arrow(cue) if include_force_scale else ""
     style = render_style("cascade_styles.css") if css else ""
     script = _render_script() if interactive else ""
     defs = _render_defs()
