@@ -62,24 +62,60 @@
 }
 .cascade .resolution-label { font-size: 10px; fill: #555555; }
 
-/* --- Force scale (ordinal, single-hue luminance ramp on the active tick) --- */
-.cascade .force-scale .tick line { stroke: #000000; stroke-width: 1; }
-.cascade .force-scale .tick[data-active="true"] line {
-  stroke: #000000;
-  stroke-width: 3;
+/* --- Horizontal force strip (replaces the old vertical force scale) ---
+ * Four ordinal cells (advisory → strong → mandatory → blocking) read as a
+ * vocabulary axis. Active cell takes the force tint at full strength + a
+ * bold dark-blue label (white text on the deepest tint for contrast).
+ * Inactive cells stay muted neutral.
+ */
+.cascade .force-strip .strip-cell-bg {
+  fill: #F4F4F4;
+  stroke: #E0E0E0;
+  stroke-width: 1;
 }
-.cascade .force-scale .tick[data-active="true"][data-level="advisory"]  line { stroke: #5B8AB8; }
-.cascade .force-scale .tick[data-active="true"][data-level="strong"]    line { stroke: #5B8AB8; }
-.cascade .force-scale .tick[data-active="true"][data-level="mandatory"] line { stroke: #5B8AB8; }
-.cascade .force-scale .tick[data-active="true"][data-level="blocking"]  line { stroke: #1F3D5C; }
-.cascade .force-scale .tick text { font-size: 11px; fill: #555555; }
-.cascade .force-scale .tick[data-active="true"] text { fill: #212121; font-weight: bold; }
+.cascade .force-strip .strip-cell[data-active="true"] .strip-cell-bg[data-level="advisory"]  { fill: #E8F1F8; stroke: #BFD3E6; }
+.cascade .force-strip .strip-cell[data-active="true"] .strip-cell-bg[data-level="strong"]    { fill: #BFD3E6; stroke: #5B8AB8; }
+.cascade .force-strip .strip-cell[data-active="true"] .strip-cell-bg[data-level="mandatory"] { fill: #F2C5A3; stroke: #D55E00; }
+.cascade .force-strip .strip-cell[data-active="true"] .strip-cell-bg[data-level="blocking"]  { fill: #D55E00; stroke: #1F3D5C; }
 
-/* --- Safety modifier arrow (vermillion, Wong urgent hue) --- */
-.cascade .safety-arrow {
+.cascade .force-strip .strip-cell-label {
+  font-size: 11px;
+  fill: #888888;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.cascade .force-strip .strip-cell[data-active="true"] .strip-cell-label { fill: #1F3D5C; font-weight: 700; }
+.cascade .force-strip .strip-cell[data-active="true"] .strip-cell-bg[data-level="blocking"] + .strip-cell-label,
+.cascade .force-strip .strip-cell[data-active="true"][data-level="blocking"] .strip-cell-label { fill: #FFFFFF; }
+
+/* --- Safety lift arrow under the strip (visual only; textual rationale
+       lives in the safety banner below) --- */
+.cascade .force-strip .strip-safety-arrow {
   stroke: #D55E00;
   stroke-width: 2;
   fill: none;
+}
+
+/* --- Safety banner (vermillion accent strip + textual rationale) ---
+ * Vermillion across the cascade always means "needs attention" — visual
+ * rhyme with the threshold tick in Panel 1 and detected signals in Panel 2.
+ */
+.cascade .safety-banner .safety-bg {
+  fill: #FFF6EF;             /* very pale vermillion wash */
+  stroke: #F2C5A3;
+  stroke-width: 1;
+}
+.cascade .safety-banner .safety-accent {
+  fill: #D55E00;
+}
+.cascade .safety-banner .safety-title {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #1F3D5C;
+}
+.cascade .safety-banner .safety-detail {
+  font-size: 10px;
+  fill: #555555;
 }
 
 /* --- Output box (canonical cue display: action + force pill + via caption) ---
