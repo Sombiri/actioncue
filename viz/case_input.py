@@ -47,12 +47,18 @@ def _to_x(value: float, inner_width: int, x_offset: int) -> int:
     return x_offset + int(round(value * inner_width))
 
 
-def render_interval_bar(case: Case, *, width: int = 320, height: int = 56) -> str:
+def render_interval_bar(case: Case, *, width: int = 320, height: int = 56,
+                        css: bool = True) -> str:
     """The risk interval bar alone: shaded interval band, threshold tick, point-estimate marker.
 
     Returns a complete <svg> fragment with its own viewBox so it can be
     rendered standalone (used directly in the three-way comparison's
     middle column) or embedded inside another panel via <g transform="translate(...)">.
+
+    `css=True` (default) emits an inline <style> block so the standalone
+    caller (e.g. ui/comparison.py) gets the bar styled. The embedded use
+    inside render_case_input passes `css=False` to avoid double-injection
+    — Panel 1 loads the same stylesheet at the panel level.
     """
     low, high = case.risk_interval
     threshold = case.decision_threshold
@@ -69,7 +75,10 @@ def render_interval_bar(case: Case, *, width: int = 320, height: int = 56) -> st
     tick_top = track_y - _BAR_TICK_OVERHANG
     tick_bot = track_y + _BAR_TRACK_HEIGHT + _BAR_TICK_OVERHANG
 
+    style = render_style("case_input_styles.css") if css else ""
+
     return f'''<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" class="interval-bar" xmlns="http://www.w3.org/2000/svg">
+  {style}
   <rect class="bar-track" x="{_BAR_PAD_X}" y="{track_y}" width="{inner_width}" height="{_BAR_TRACK_HEIGHT}" rx="2" />
   <rect class="bar-interval" x="{x_low}" y="{track_y}" width="{x_high - x_low}" height="{_BAR_TRACK_HEIGHT}" rx="2" />
   <line class="threshold-tick" x1="{x_threshold}" y1="{tick_top}" x2="{x_threshold}" y2="{tick_bot}" />
@@ -142,7 +151,7 @@ def render_case_input(case: Case, *, width: int = 360, height: int = 240,
         f'  <text class="section-label" x="{_PANEL_PAD_X}" y="{_SECTION_LABEL_Y}">AI risk score</text>'
     )
     score_label = _render_score_label(case, width, bar_inner_width)
-    bar = render_interval_bar(case, width=bar_width, height=56)
+    bar = render_interval_bar(case, width=bar_width, height=56, css=False)
     bar_translated = f'  <g transform="translate({_PANEL_PAD_X}, {_BAR_TOP_Y})">\n{bar}\n  </g>'
     threshold_label = _render_threshold_label(case, bar_inner_width)
     description = _render_description(case, width)
