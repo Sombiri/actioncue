@@ -20,6 +20,7 @@ def render(case: Case) -> None:
         st.subheader("Uncertainty display only")
         st.metric("AI risk score", f"{case.risk_score:.2f}")
         components.html(render_interval_bar(case), height=80, scrolling=False)
+        st.caption(f"Decision threshold: {case.decision_threshold:.2f}")
 
     with col_ac:
         st.subheader("ActionCue (process transparency)")
