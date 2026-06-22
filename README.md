@@ -6,19 +6,19 @@ Visualizing Uncertainty-to-Action Composition for Human Oversight
 
 Authored by:
 
-- Chisom Ezekannagha
-- *(co-authors TBD)*
+<!-- - Chisom Ezekannagha
+- *(co-authors TBD)* -->
 
 The manuscript is in preparation. Please cite the following article should you use any part of this code or build upon it:
 
 ```bibtex
-@article{actioncue_TBD,
+<!-- @article{actioncue_TBD,
   title   = {ActionCue: Visualizing Uncertainty-to-Action Binding for AI-Supported Decisions},
   author  = {Ezekannagha, Chisom and others},
   journal = {TBD},
   year    = {TBD},
   doi     = {TBD}
-}
+} -->
 ```
 
 ## Abstract
@@ -123,4 +123,4 @@ Released under the MIT License — see [`LICENSE`](LICENSE).
 
 ## Contribution
 
-Contributions are welcome and must comply with the MIT License. The prototype is structured around stable contracts: `models.py`, `rules.py`, `engine.py`, the renderers in `viz/`, and the figure pipeline are treated as the contract through Week 3. See [CLAUDE.md](CLAUDE.md) for the full conventions and stable-file boundaries before opening a PR.
+Contributions are welcome and must comply with the MIT License. The prototype is structured around stable contracts: `models.py`, `rules.py`, `engine.py`, the renderers in `viz/`, and the figure pipeline are treated as the contract.
