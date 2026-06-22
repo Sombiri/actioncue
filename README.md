@@ -12,13 +12,7 @@ Authored by:
 The manuscript is in preparation. Please cite the following article should you use any part of this code or build upon it:
 
 ```bibtex
-<!-- @article{actioncue_TBD,
-  title   = {ActionCue: Visualizing Uncertainty-to-Action Binding for AI-Supported Decisions},
-  author  = {Ezekannagha, Chisom and others},
-  journal = {TBD},
-  year    = {TBD},
-  doi     = {TBD}
-} -->
+citation placeholer
 ```
 
 ## Abstract
