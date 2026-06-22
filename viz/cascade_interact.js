@@ -17,25 +17,12 @@
   }
   function hideTip() { tooltip.style.opacity = '0'; }
 
-  // Bands: hover tooltip + click-to-expand
+  // Bands: click-to-expand on fired bands. No hover tooltip — the rationale
+  // and signal label live inside the band's on-demand layer, revealed by
+  // click. Hover duplicating that content was visual noise; this restores
+  // the overview-first / details-on-demand pattern (Shneiderman 1996).
   root.querySelectorAll('.band').forEach(band => {
-    const cls = band.dataset.class;
     const fired = band.dataset.fired === 'true';
-    const rationale = band.dataset.rationale || '';
-    const signalLabel = band.dataset.signalLabel || '';
-
-    band.addEventListener('mouseenter', ev => {
-      const text = fired
-        ? cls + ' — fired (' + signalLabel + '): ' + rationale
-        : cls + ' — did not fire';
-      showTip(band, text, ev);
-    });
-    band.addEventListener('mousemove', ev => {
-      tooltip.style.left = (ev.pageX + 12) + 'px';
-      tooltip.style.top  = (ev.pageY + 12) + 'px';
-    });
-    band.addEventListener('mouseleave', hideTip);
-
     if (fired) {
       band.style.cursor = 'pointer';
       band.addEventListener('click', () => {
@@ -54,20 +41,19 @@
     arrow.addEventListener('mouseleave', hideTip);
   }
 
-  // Force-scale ticks: hover tooltip
-  root.querySelectorAll('.force-scale .tick').forEach(tick => {
-    tick.addEventListener('mouseenter', ev => {
-      showTip(tick, tick.dataset.tip || '', ev);
+  // Strip safety arrow: hover tooltip (only present when cue.safety_modified).
+  // The <g class="strip-safety"> wrapper carries data-tip from cascade.py:
+  //   "Force raised from {base} to {modified} due to {reason}"
+  const stripSafety = root.querySelector('.strip-safety');
+  if (stripSafety) {
+    stripSafety.addEventListener('mouseenter', ev => {
+      showTip(stripSafety, stripSafety.dataset.tip || '', ev);
     });
-    tick.addEventListener('mouseleave', hideTip);
-  });
-
-  // Safety modifier arrow: hover tooltip
-  const safetyArrow = root.querySelector('.safety-modifier');
-  if (safetyArrow) {
-    safetyArrow.addEventListener('mouseenter', ev => {
-      showTip(safetyArrow, safetyArrow.dataset.tip || '', ev);
-    });
-    safetyArrow.addEventListener('mouseleave', hideTip);
+    stripSafety.addEventListener('mouseleave', hideTip);
   }
+
+  // Safety banner has no hover affordance by design — the banner carries
+  // its message in-place; a tooltip would duplicate prose that's already
+  // visible. The strip-safety arrow above the banner gets the hover since
+  // it's the visual gesture (no text); the banner is the prose itself.
 })();
