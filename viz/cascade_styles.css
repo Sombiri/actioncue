@@ -36,7 +36,7 @@
 .cascade .band[data-class="validity"]       .band-accent { fill: #D55E00; }
 .cascade .band[data-class="completion"]     .band-accent { fill: #009E73; }
 .cascade .band[data-class="sensitivity"]    .band-accent { fill: #CC79A7; }
-.cascade .band[data-class="interpretation"] .band-accent { fill: #000000; }
+.cascade .band[data-class="interpretation"] .band-accent { fill: #0072B2; }
 
 /* --- On-demand reveal layer --- */
 .cascade .band .on-demand {
@@ -137,8 +137,7 @@
 .cascade .output .cue-via {
   font-size: 10px;
   fill: #888888;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-style: italic;
 }
 
 .cascade .output .force-pill { stroke: none; }
