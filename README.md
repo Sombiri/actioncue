@@ -119,7 +119,7 @@ A **rules registry** expander at the bottom of the page shows the four rule defi
 
 ## License
 
-Released under the MIT License — see [`LICENSE`](LICENSE) (TBD).
+Released under the MIT License — see [`LICENSE`](LICENSE).
 
 ## Contribution
 
