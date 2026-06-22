@@ -49,7 +49,21 @@ def _band_y(index: int) -> int:
     return _BAND_Y0 + index * (_BAND_HEIGHT + _BAND_GAP)
 
 
-def _render_band(rule_class: str, fired: bool, is_winner: bool, y: int, firing: Optional[RuleFiring] = None) -> str:
+def _render_band(rule_class: str, fired: bool, is_winner: bool, y: int,
+                 firing: Optional[RuleFiring] = None, interactive: bool = False) -> str:
+    """Render one cascade band.
+
+    Where the rationale lives depends on `interactive`:
+      - interactive=False (static figures): rationale is always-visible
+        directly inside the band, beneath the class label. Figures 1, 3,
+        and 4 all use this path so the paper figures stay information-
+        dense without depending on hover/click.
+      - interactive=True (live Streamlit demo): rationale moves into the
+        on-demand <g>, hidden by default and revealed by click. This
+        restores the overview-first / details-on-demand pattern
+        (Shneiderman 1996) in the interactive setting where reader can
+        actually click.
+    """
     label = rule_class.capitalize()
     label_y = y + 30
     status_cx = _BAND_X + _BAND_WIDTH - 20
@@ -64,24 +78,27 @@ def _render_band(rule_class: str, fired: bool, is_winner: bool, y: int, firing: 
             f'<tspan x="{text_x}" dy="{0 if i == 0 else 11}">{line}</tspan>'
             for i, line in enumerate(rationale_lines)
         )
-        # Always-visible rationale sits just below the band label. Visible in
-        # both reveal="none" (Figure 1) and reveal="all" (Figure 3) — it's the
-        # primary content of a fired band, not on-demand.
-        band_rationale = (
-            f'<text class="band-rationale" x="{text_x}" y="{y + 48}">{rationale_tspans}</text>'
+        rationale_y = y + 48
+        signal_y = rationale_y + 11 * max(1, len(rationale_lines)) + 6
+
+        rationale_block = (
+            f'<text class="band-rationale" x="{text_x}" y="{rationale_y}">{rationale_tspans}</text>'
         )
-        # On-demand layer carries only what's reader-useful and not already
-        # shown: the triggering-signal label. Rationale is in band_rationale
-        # above. Rule id (e.g. "completion_missing_critical") is a debugging
-        # identifier, not reader content, so we drop it from the visible
-        # on-demand layer — it stays in data-rationale on the band group for
-        # the interactive layer's tooltip if needed.
-        # Position: just below band-rationale, computed from the actual
-        # number of wrapped rationale lines so it never overflows the band.
-        signal_y = y + 48 + 11 * max(1, len(rationale_lines)) + 6
-        on_demand_content = (
+        signal_block = (
             f'<text class="on-demand-signal" x="{text_x}" y="{signal_y}">from signal: {signal_label}</text>'
         )
+
+        if interactive:
+            # Live demo: both rationale and signal label live inside on-demand,
+            # revealed together on click. Band default-state shows only class
+            # label + status circle.
+            band_rationale = ""
+            on_demand_content = rationale_block + "\n        " + signal_block
+        else:
+            # Static figures: rationale always visible; on-demand keeps
+            # signal label (revealed by `reveal="all"` in Figure 3).
+            band_rationale = rationale_block
+            on_demand_content = signal_block
     else:
         data_attrs = ""
         band_rationale = ""
@@ -308,6 +325,7 @@ def render_cascade(
             is_winner=cls == winner_class,
             y=_band_y(i),
             firing=firings_by_class.get(cls),
+            interactive=interactive,
         )
         for i, cls in enumerate(_CLASS_ORDER)
     )
