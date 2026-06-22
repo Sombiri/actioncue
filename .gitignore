@@ -5,10 +5,7 @@ venv/
 .pytest_cache/
 .DS_Store
 figures/*.svg
-scratch_render.py
 scratch.html
-scratch_2a.py
-scratch_2b.py
-scratch_2a.html
-scratch_2a.svg
-scratch_2b.html
+scratch_*.html
+scratch_*.svg
+scratch_*.py
