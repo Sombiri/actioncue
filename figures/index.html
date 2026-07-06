@@ -13,8 +13,8 @@
 <body>
   <h1 style="font-size: 16px;">ActionCue — Week 2 figure export</h1>
   <section>
-    <h2>Figure 1 — four-panel composite (Case C)</h2>
-    <svg viewBox="0 0 720 760" width="720" height="760" class="four-panel" xmlns="http://www.w3.org/2000/svg">
+    <h2>Figure 1 — three-panel row (Case C)</h2>
+    <svg viewBox="0 0 1440 462" width="1440" height="462" class="three-panel-row" xmlns="http://www.w3.org/2000/svg">
   <style>/*
  * Scoped stylesheet for Panel 1 (case input) and the standalone
  * interval bar. Two scopes:
@@ -345,7 +345,26 @@
 .cascade .band[data-fired="false"] { opacity: 0.45; }
 .cascade .band[data-fired="false"] .band-label { fill: #555555; }
 </style>
-  <g transform="translate(0, 0)">
+  <style>
+  /* Panel 1 chrome */
+  .case-input .section-label { font-size: 13px; }
+  .case-input .domain-tag { font-size: 13px; }
+  .case-input .threshold-label { font-size: 13px; }
+  .case-input .case-description { font-size: 13px; }
+  .interval-bar .endpoint-label { font-size: 13px; }
+  /* Panel 2 signals */
+  .signals .signal-label { font-size: 13px; }
+  .signals .signal-detail { font-size: 12px; }
+  /* Panel 3 cascade — band labels stay 14px; bump everything else small */
+  .cascade .band-rationale { font-size: 12px; }
+  .cascade .on-demand-signal { font-size: 11px; }
+  .cascade .strip-cell-label { font-size: 12px; }
+  .cascade .safety-detail { font-size: 11px; }
+</style>
+  <text x="8" y="16" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#212121">(a)</text>
+  <text x="368" y="16" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#212121">(b)</text>
+  <text x="728" y="16" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#212121">(c)</text>
+  <g transform="translate(0, 22)">
 <svg viewBox="0 0 360 240" width="360" height="240" class="case-input" xmlns="http://www.w3.org/2000/svg">
   
   <rect class="case-badge" x="16" y="10" width="26" height="22" rx="4" />
@@ -368,7 +387,7 @@
   <text class="case-description" x="16" y="188"><tspan x="16" dy="0">Patient with risk at threshold; oxygen saturation</tspan><tspan x="16" dy="14">missing.</tspan></text>
 </svg>
   </g>
-  <g transform="translate(360, 0)">
+  <g transform="translate(360, 22)">
 <svg viewBox="0 0 360 240" width="360" height="240" class="signals" xmlns="http://www.w3.org/2000/svg">
   
   <text class="section-label" x="16" y="20">UNCERTAINTY SIGNALS</text>
@@ -402,8 +421,8 @@
   </g>
 </svg>
   </g>
-  <g transform="translate(0, 240)">
-<svg viewBox="0 0 720 520" width="720" height="520" class="cascade" data-reveal="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(720, 22)">
+<svg viewBox="0 0 720 440" width="720" height="440" class="cascade" data-reveal="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="cascade-arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
@@ -484,7 +503,7 @@
   </section>
   <section>
     <h2>Figure 2 — three-way comparison (Case C)</h2>
-    <svg viewBox="0 0 1080 560" width="1080" height="560" class="three-way" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 1080 582" width="1080" height="582" class="three-way" xmlns="http://www.w3.org/2000/svg">
   <style>/*
  * Scoped stylesheet for Panel 1 (case input) and the standalone
  * interval bar. Two scopes:
@@ -815,22 +834,43 @@
 .cascade .band[data-fired="false"] { opacity: 0.45; }
 .cascade .band[data-fired="false"] .band-label { fill: #555555; }
 </style>
-  <text x="120" y="28" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#1F3D5C" letter-spacing="0.06em">CONFIDENCE-ONLY</text>
-  <text x="380" y="28" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#1F3D5C" letter-spacing="0.06em">UNCERTAINTY DISPLAY</text>
-  <text x="800" y="28" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#1F3D5C" letter-spacing="0.06em">ACTIONCUE</text>
+  <style>
+  /* Panel 1 chrome */
+  .case-input .section-label { font-size: 13px; }
+  .case-input .domain-tag { font-size: 13px; }
+  .case-input .threshold-label { font-size: 13px; }
+  .case-input .case-description { font-size: 13px; }
+  .interval-bar .endpoint-label { font-size: 13px; }
+  /* Panel 2 signals */
+  .signals .signal-label { font-size: 13px; }
+  .signals .signal-detail { font-size: 12px; }
+  /* Panel 3 cascade — band labels stay 14px; bump everything else small */
+  .cascade .band-rationale { font-size: 12px; }
+  .cascade .on-demand-signal { font-size: 11px; }
+  .cascade .strip-cell-label { font-size: 12px; }
+  .cascade .safety-detail { font-size: 11px; }
+</style>
+  <text x="8" y="16" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#212121">(a)</text>
+  <text x="248" y="16" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#212121">(b)</text>
+  <text x="528" y="16" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#212121">(c)</text>
+  <text x="120" y="44" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#1F3D5C" letter-spacing="0.06em">CONFIDENCE-ONLY</text>
+  <text x="380" y="44" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#1F3D5C" letter-spacing="0.06em">UNCERTAINTY DISPLAY</text>
+  <text x="800" y="44" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#1F3D5C" letter-spacing="0.06em">ACTIONCUE</text>
+  <line x1="240" y1="0" x2="240" y2="582" stroke="#D0D0D0" stroke-width="1" />
+  <line x1="520" y1="0" x2="520" y2="582" stroke="#D0D0D0" stroke-width="1" />
   <g transform="translate(0, 0)">
-<svg viewBox="0 0 240 560" width="240" height="560" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 240 582" width="240" height="582" xmlns="http://www.w3.org/2000/svg">
   <g class="conf-only-card" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
-    <text x="120" y="84" text-anchor="middle" font-size="11" fill="#555555" letter-spacing="0.04em">AI RISK SCORE</text>
-    <text x="120" y="330" text-anchor="middle" font-size="48" font-weight="700" fill="#1F3D5C">0.62</text>
-    <text x="120" y="366" text-anchor="middle" font-size="12" fill="#888888">Decision threshold: 0.60</text>
+    <text x="120" y="100" text-anchor="middle" font-size="13" fill="#555555" letter-spacing="0.04em">AI RISK SCORE</text>
+    <text x="120" y="349" text-anchor="middle" font-size="48" font-weight="700" fill="#1F3D5C">0.62</text>
+    <text x="120" y="385" text-anchor="middle" font-size="14" fill="#888888">Decision threshold: 0.60</text>
   </g>
 </svg>
   </g>
   <g transform="translate(240, 0)">
-<svg viewBox="0 0 280 560" width="280" height="560" xmlns="http://www.w3.org/2000/svg">
-  <text x="140" y="242" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#1F3D5C">0.62</text>
-  <g transform="translate(0, 260)">
+<svg viewBox="0 0 280 582" width="280" height="582" xmlns="http://www.w3.org/2000/svg">
+  <text x="140" y="253" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#1F3D5C">0.62</text>
+  <g transform="translate(0, 271)">
 <svg viewBox="0 0 280 80" width="280" height="80" class="interval-bar" xmlns="http://www.w3.org/2000/svg">
   <style>/*
  * Scoped stylesheet for Panel 1 (case input) and the standalone
@@ -899,8 +939,8 @@
   </g>
 </svg>
   </g>
-  <g transform="translate(520, 60)">
-<svg viewBox="0 0 560 480" width="560" height="480" class="cascade" data-reveal="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(520, 76)">
+<svg viewBox="0 0 560 486" width="560" height="486" class="cascade" data-reveal="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="cascade-arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
             markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
