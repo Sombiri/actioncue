@@ -25,7 +25,7 @@ from cases.cross_domain import CASE_CR, CASE_DR
 from engine import compose_cue
 from rules import RULES
 from viz.cascade import render_cascade
-from viz.composite import render_four_panel, render_three_way
+from viz.composite import render_four_panel, render_three_panel_row, render_three_way
 
 
 FIGURES_DIR = Path("figures")
@@ -79,10 +79,13 @@ if __name__ == "__main__":
 
     rendered: list[tuple[str, str]] = []
 
-    # Figure 1 — four-panel composite (CASE_C, the §4 worked example)
-    svg = render_four_panel(CASE_C, cue_c, css=True, interactive=False)
+    # Figure 1 — horizontal three-panel row (CASE_C, the §4 worked example)
+    # Wide-aspect layout (P1 | P2 | P3 side-by-side) keeps the paper PDF
+    # from forcing a page break; filename stays `figure_1_four_panel` for
+    # citation stability.
+    svg = render_three_panel_row(CASE_C, cue_c, css=True, interactive=False)
     _write_pair(svg, "figure_1_four_panel")
-    rendered.append(("Figure 1 — four-panel composite (Case C)", svg))
+    rendered.append(("Figure 1 — three-panel row (Case C)", svg))
 
     # Figure 2 — three-way comparison (CASE_C)
     svg = render_three_way(CASE_C, cue_c, css=True, interactive=False)
