@@ -59,7 +59,7 @@ _CASCADE_W = 720
 
 # --- Three-way comparison layout (viewBox units) ---
 _THREE_WAY_WIDTH = 1080
-_THREE_WAY_HEIGHT = 560   # bumped from 520 to fit the cascade's 500-tall default
+_THREE_WAY_HEIGHT = 582   # 560 base + 22 label band for (a)(b)(c) above column headers
 
 _COL_CONF_X = 0
 _COL_CONF_W = 240
@@ -68,8 +68,8 @@ _COL_BAR_W = 280
 _COL_CASCADE_X = 520
 _COL_CASCADE_W = 560
 
-_COL_HEADER_Y = 28
-_COL_BODY_TOP_Y = 60
+_COL_HEADER_Y = 44  # bumped from 28 to make room for the (a)(b)(c) label band above
+_COL_BODY_TOP_Y = 76  # bumped from 60 to match the new header_y
 
 
 def _load_combined_css() -> str:
@@ -86,6 +86,33 @@ def _load_combined_css() -> str:
     ]
     combined = "\n\n".join((css_dir / f).read_text() for f in files)
     return f'<style>{combined}</style>'
+
+
+# Figure-only font overrides applied to Figures 1 and 2 (the paper figures
+# that get scaled down by LaTeX). These bump the smallest panel-internal
+# fonts so they remain readable at print size. The live Streamlit demo and
+# Figure 4 generativity panels are unaffected — only render_three_panel_row
+# and render_three_way inject these.
+#
+# Band labels in the cascade (14px) are deliberately NOT bumped; the user
+# wants them to stay at their current weight relative to the bumped
+# rationale and strip labels.
+_FIGURE_FONT_OVERRIDES = '''<style>
+  /* Panel 1 chrome */
+  .case-input .section-label { font-size: 13px; }
+  .case-input .domain-tag { font-size: 13px; }
+  .case-input .threshold-label { font-size: 13px; }
+  .case-input .case-description { font-size: 13px; }
+  .interval-bar .endpoint-label { font-size: 13px; }
+  /* Panel 2 signals */
+  .signals .signal-label { font-size: 13px; }
+  .signals .signal-detail { font-size: 12px; }
+  /* Panel 3 cascade — band labels stay 14px; bump everything else small */
+  .cascade .band-rationale { font-size: 12px; }
+  .cascade .on-demand-signal { font-size: 11px; }
+  .cascade .strip-cell-label { font-size: 12px; }
+  .cascade .safety-detail { font-size: 11px; }
+</style>'''
 
 
 def _wrap(sub_svg: str, x: int, y: int) -> str:
@@ -147,6 +174,96 @@ def render_four_panel(
 
 
 # ---------------------------------------------------------------------------
+# Horizontal three-panel row (Figure 1 variant for paper PDF)
+# ---------------------------------------------------------------------------
+
+_ROW_WIDTH = 1440
+_ROW_HEIGHT = 462  # 440 tightened cascade height + 22 label band
+_ROW_P1_W = 360
+_ROW_P2_W = 360
+_ROW_P3_W = 720
+_ROW_P1_H = 240
+_ROW_P2_H = 240
+_ROW_P3_H = 440  # tightened from 520; CASE_C cascade content ends ~y=410
+_ROW_P1_X = 0
+_ROW_P2_X = 360
+_ROW_P3_X = 720
+# Panel labels (a)(b)(c) sit above each panel in a reserved 22-unit band.
+# Sub-panels translate down by this amount.
+_ROW_LABEL_BAND = 22
+_ROW_LABEL_BASELINE_Y = 16
+_ROW_LABEL_INSET_X = 8
+_ROW_LABEL_FONT_SIZE = 14
+
+
+def _render_panel_label(letter: str, col_x: int, baseline_y: int = _ROW_LABEL_BASELINE_Y) -> str:
+    """Bold lowercase '(letter)' label at the top-left of a column.
+
+    Used as the (a)/(b)/(c) callout on Figures 1 and 2 so the paper can
+    reference each sub-panel.
+    """
+    x = col_x + _ROW_LABEL_INSET_X
+    return (
+        f'  <text x="{x}" y="{baseline_y}" '
+        f'font-family="-apple-system, \'Segoe UI\', Roboto, sans-serif" '
+        f'font-size="{_ROW_LABEL_FONT_SIZE}" font-weight="700" fill="#212121">'
+        f'({letter})</text>'
+    )
+
+
+def render_three_panel_row(
+    case: Case,
+    cue: Cue,
+    *,
+    css: bool = True,
+    interactive: bool = False,
+) -> str:
+    """Figure 1 horizontal variant: P1 | P2 | P3 in one row.
+
+    Total viewBox 1440 x 520. P1 and P2 render at natural 360 wide and
+    top-align against P3's 520-tall cascade — whitespace below P1 and P2
+    is expected. The wide aspect ratio (~2.77:1) lets LaTeX scale the
+    figure to \\linewidth without forcing it onto its own page.
+    """
+    p1 = render_case_input(
+        case,
+        width=_ROW_P1_W, height=_ROW_P1_H,
+        css=False, interactive=interactive,
+    )
+    p2 = render_signals(
+        case,
+        width=_ROW_P2_W, height=_ROW_P2_H,
+        css=False, interactive=interactive,
+    )
+    cascade = render_cascade(
+        case, cue,
+        reveal="none",
+        width=_ROW_P3_W, height=_ROW_P3_H,
+        css=False, interactive=interactive,
+    )
+
+    style = _load_combined_css() if css else ""
+    overrides = _FIGURE_FONT_OVERRIDES if css else ""
+    label_a = _render_panel_label("a", _ROW_P1_X)
+    label_b = _render_panel_label("b", _ROW_P2_X)
+    label_c = _render_panel_label("c", _ROW_P3_X)
+    p1_wrapped = _wrap(p1, _ROW_P1_X, _ROW_LABEL_BAND)
+    p2_wrapped = _wrap(p2, _ROW_P2_X, _ROW_LABEL_BAND)
+    cascade_wrapped = _wrap(cascade, _ROW_P3_X, _ROW_LABEL_BAND)
+
+    return f'''<svg viewBox="0 0 {_ROW_WIDTH} {_ROW_HEIGHT}" width="{_ROW_WIDTH}" height="{_ROW_HEIGHT}" class="three-panel-row" xmlns="http://www.w3.org/2000/svg">
+  {style}
+  {overrides}
+{label_a}
+{label_b}
+{label_c}
+{p1_wrapped}
+{p2_wrapped}
+{cascade_wrapped}
+</svg>'''
+
+
+# ---------------------------------------------------------------------------
 # Three-way comparison (Figure 2)
 # ---------------------------------------------------------------------------
 
@@ -164,9 +281,9 @@ def _render_confidence_only_card(case: Case, col_width: int, col_height: int) ->
     caption_y = score_y + 36
 
     return f'''  <g class="conf-only-card" font-family="-apple-system, 'Segoe UI', Roboto, sans-serif">
-    <text x="{center_x}" y="{body_top + 24}" text-anchor="middle" font-size="11" fill="#555555" letter-spacing="0.04em">AI RISK SCORE</text>
+    <text x="{center_x}" y="{body_top + 24}" text-anchor="middle" font-size="13" fill="#555555" letter-spacing="0.04em">AI RISK SCORE</text>
     <text x="{center_x}" y="{score_y + 30}" text-anchor="middle" font-size="48" font-weight="700" fill="#1F3D5C">{score}</text>
-    <text x="{center_x}" y="{caption_y + 30}" text-anchor="middle" font-size="12" fill="#888888">Decision threshold: {threshold}</text>
+    <text x="{center_x}" y="{caption_y + 30}" text-anchor="middle" font-size="14" fill="#888888">Decision threshold: {threshold}</text>
   </g>'''
 
 
@@ -175,8 +292,16 @@ def _render_column_header(label: str, col_x: int, col_width: int) -> str:
     return (
         f'  <text x="{center_x}" y="{_COL_HEADER_Y}" text-anchor="middle" '
         f'font-family="-apple-system, \'Segoe UI\', Roboto, sans-serif" '
-        f'font-size="12" font-weight="700" fill="#1F3D5C" '
+        f'font-size="14" font-weight="700" fill="#1F3D5C" '
         f'letter-spacing="0.06em">{label}</text>'
+    )
+
+
+def _render_column_divider(x: int, height: int) -> str:
+    """Thin grey vertical line separating two columns in render_three_way."""
+    return (
+        f'  <line x1="{x}" y1="0" x2="{x}" y2="{height}" '
+        f'stroke="#D0D0D0" stroke-width="1" />'
     )
 
 
@@ -236,13 +361,27 @@ def render_three_way(
     h_bar = _render_column_header("UNCERTAINTY DISPLAY", _COL_BAR_X, _COL_BAR_W)
     h_cascade = _render_column_header("ACTIONCUE", _COL_CASCADE_X, _COL_CASCADE_W)
 
+    label_a = _render_panel_label("a", _COL_CONF_X)
+    label_b = _render_panel_label("b", _COL_BAR_X)
+    label_c = _render_panel_label("c", _COL_CASCADE_X)
+
+    divider_1 = _render_column_divider(_COL_BAR_X, height)
+    divider_2 = _render_column_divider(_COL_CASCADE_X, height)
+
     style = _load_combined_css() if css else ""
+    overrides = _FIGURE_FONT_OVERRIDES if css else ""
 
     return f'''<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" class="three-way" xmlns="http://www.w3.org/2000/svg">
   {style}
+  {overrides}
+{label_a}
+{label_b}
+{label_c}
 {h_conf}
 {h_bar}
 {h_cascade}
+{divider_1}
+{divider_2}
 {conf_wrapped}
 {bar_wrapped}
 {cascade_wrapped}
