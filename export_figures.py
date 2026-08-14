@@ -79,16 +79,24 @@ if __name__ == "__main__":
 
     rendered: list[tuple[str, str]] = []
 
-    # Figure 1 — horizontal three-panel row (CASE_C, the §4 worked example)
-    # Wide-aspect layout (P1 | P2 | P3 side-by-side) keeps the paper PDF
-    # from forcing a page break; filename stays `figure_1_four_panel` for
-    # citation stability.
-    svg = render_three_panel_row(CASE_C, cue_c, css=True, interactive=False)
+    # Figure 1 — horizontal three-panel row (CASE_C, the §4 worked example).
+    # Wide-aspect layout (P1 | P2 | P3 side-by-side) at IEEE VIS
+    # double-column width. `physical_width_in=7.0` targets \linewidth so
+    # LaTeX embeds 1:1 with no downscaling.
+    svg = render_three_panel_row(
+        CASE_C, cue_c, css=True, interactive=False,
+        physical_width_in=7.0,
+    )
     _write_pair(svg, "figure_1_four_panel")
     rendered.append(("Figure 1 — three-panel row (Case C)", svg))
 
-    # Figure 2 — three-way comparison (CASE_C)
-    svg = render_three_way(CASE_C, cue_c, css=True, interactive=False)
+    # Figure 2 — three-way comparison (CASE_C). Also placed at 7in wide
+    # (double-column via figure* environment) — at single-column 3.3in the
+    # sub-cascade text would fall below the 7pt legibility floor.
+    svg = render_three_way(
+        CASE_C, cue_c, css=True, interactive=False,
+        physical_width_in=7.0,
+    )
     _write_pair(svg, "figure_2_three_way")
     rendered.append(("Figure 2 — three-way comparison (Case C)", svg))
 
