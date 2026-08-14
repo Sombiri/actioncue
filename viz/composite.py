@@ -131,6 +131,7 @@ def render_four_panel(
     height: int = _COMPOSITE_HEIGHT,
     css: bool = True,
     interactive: bool = False,
+    physical_width_in: float | None = None,
 ) -> str:
     """Figure 1: composite of case input + signals (top row) over the cascade
     (bottom row, full-width).
@@ -165,7 +166,13 @@ def render_four_panel(
     p2_wrapped = _wrap(p2, _PANEL_2_X, _TOP_ROW_Y)
     cascade_wrapped = _wrap(cascade, _CASCADE_X, _CASCADE_ROW_Y)
 
-    return f'''<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" class="four-panel" xmlns="http://www.w3.org/2000/svg">
+    if physical_width_in is not None:
+        physical_height_in = physical_width_in * height / width
+        svg_dims = f'width="{physical_width_in}in" height="{physical_height_in:.3f}in"'
+    else:
+        svg_dims = f'width="{width}" height="{height}"'
+
+    return f'''<svg viewBox="0 0 {width} {height}" {svg_dims} class="four-panel" xmlns="http://www.w3.org/2000/svg">
   {style}
 {p1_wrapped}
 {p2_wrapped}
@@ -217,6 +224,7 @@ def render_three_panel_row(
     *,
     css: bool = True,
     interactive: bool = False,
+    physical_width_in: float | None = None,
 ) -> str:
     """Figure 1 horizontal variant: P1 | P2 | P3 in one row.
 
@@ -224,6 +232,11 @@ def render_three_panel_row(
     top-align against P3's 520-tall cascade — whitespace below P1 and P2
     is expected. The wide aspect ratio (~2.77:1) lets LaTeX scale the
     figure to \\linewidth without forcing it onto its own page.
+
+    `physical_width_in` emits the outer <svg> width in inches so LaTeX
+    places 1:1 without further downscaling. Height auto-derives from
+    the viewBox aspect ratio. Default None keeps unitless-px width for
+    Streamlit / HTML index rendering (unchanged).
     """
     p1 = render_case_input(
         case,
@@ -251,7 +264,13 @@ def render_three_panel_row(
     p2_wrapped = _wrap(p2, _ROW_P2_X, _ROW_LABEL_BAND)
     cascade_wrapped = _wrap(cascade, _ROW_P3_X, _ROW_LABEL_BAND)
 
-    return f'''<svg viewBox="0 0 {_ROW_WIDTH} {_ROW_HEIGHT}" width="{_ROW_WIDTH}" height="{_ROW_HEIGHT}" class="three-panel-row" xmlns="http://www.w3.org/2000/svg">
+    if physical_width_in is not None:
+        physical_height_in = physical_width_in * _ROW_HEIGHT / _ROW_WIDTH
+        svg_dims = f'width="{physical_width_in}in" height="{physical_height_in:.3f}in"'
+    else:
+        svg_dims = f'width="{_ROW_WIDTH}" height="{_ROW_HEIGHT}"'
+
+    return f'''<svg viewBox="0 0 {_ROW_WIDTH} {_ROW_HEIGHT}" {svg_dims} class="three-panel-row" xmlns="http://www.w3.org/2000/svg">
   {style}
   {overrides}
 {label_a}
@@ -313,6 +332,7 @@ def render_three_way(
     height: int = _THREE_WAY_HEIGHT,
     css: bool = True,
     interactive: bool = False,
+    physical_width_in: float | None = None,
 ) -> str:
     """Figure 2: three side-by-side displays of the same case.
 
@@ -324,6 +344,10 @@ def render_three_way(
     Right column uses the standalone cascade — the full picture of what
     ActionCue reveals (bands + resolution + cue output + force strip +
     safety banner when applicable).
+
+    `physical_width_in` emits the outer <svg> width in inches so LaTeX
+    places 1:1 without further downscaling. Default None keeps unitless-px
+    width for Streamlit / HTML index rendering (unchanged).
     """
     conf_card = _render_confidence_only_card(case, _COL_CONF_W, height)
     conf_wrapped = _wrap(
@@ -371,7 +395,13 @@ def render_three_way(
     style = _load_combined_css() if css else ""
     overrides = _FIGURE_FONT_OVERRIDES if css else ""
 
-    return f'''<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" class="three-way" xmlns="http://www.w3.org/2000/svg">
+    if physical_width_in is not None:
+        physical_height_in = physical_width_in * height / width
+        svg_dims = f'width="{physical_width_in}in" height="{physical_height_in:.3f}in"'
+    else:
+        svg_dims = f'width="{width}" height="{height}"'
+
+    return f'''<svg viewBox="0 0 {width} {height}" {svg_dims} class="three-way" xmlns="http://www.w3.org/2000/svg">
   {style}
   {overrides}
 {label_a}
