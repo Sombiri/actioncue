@@ -33,13 +33,13 @@
 .case-input .domain-tag     { font-size: 12px; fill: #555555; }
 
 /* --- Section label above the bar --- */
-.case-input .section-label  { font-size: 11px; fill: #555555; letter-spacing: 0.04em; text-transform: uppercase; }
+.case-input .section-label  { font-size: 12px; fill: #555555; letter-spacing: 0.04em; text-transform: uppercase; }
 
 /* --- Score value floating above its marker --- */
 .case-input .score-value    { font-size: 18px; font-weight: bold; fill: #1F3D5C; }
 
 /* --- Threshold label below the threshold tick --- */
-.case-input .threshold-label{ font-size: 10px; fill: #D55E00; font-weight: bold; }
+.case-input .threshold-label{ font-size: 12px; fill: #D55E00; font-weight: bold; }
 
 /* --- Description (free-text context, smallest weight) --- */
 .case-input .case-description { font-size: 12px; fill: #333333; }
@@ -53,4 +53,4 @@
 .interval-bar .bar-interval  { fill: #BFD3E6; }
 .interval-bar .threshold-tick { stroke: #D55E00; stroke-width: 2; fill: none; }
 .interval-bar .score-marker  { fill: #1F3D5C; stroke: #FFFFFF; stroke-width: 1.5; }
-.interval-bar .endpoint-label { font-size: 9px; }
+.interval-bar .endpoint-label { font-size: 11px; }

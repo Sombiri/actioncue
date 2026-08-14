@@ -60,7 +60,7 @@
   stroke-width: 2;
   fill: none;
 }
-.cascade .resolution-label { font-size: 10px; fill: #555555; }
+.cascade .resolution-label { font-size: 12px; fill: #555555; }
 
 /* --- Horizontal force strip (replaces the old vertical force scale) ---
  * Four ordinal cells (advisory → strong → mandatory → blocking) read as a
@@ -79,7 +79,7 @@
 .cascade .force-strip .strip-cell[data-active="true"] .strip-cell-bg[data-level="blocking"]  { fill: #D55E00; stroke: #1F3D5C; }
 
 .cascade .force-strip .strip-cell-label {
-  font-size: 11px;
+  font-size: 12px;
   fill: #888888;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -109,12 +109,12 @@
   fill: #D55E00;
 }
 .cascade .safety-banner .safety-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   fill: #1F3D5C;
 }
 .cascade .safety-banner .safety-detail {
-  font-size: 10px;
+  font-size: 12px;
   fill: #555555;
 }
 
@@ -135,7 +135,7 @@
 }
 
 .cascade .output .cue-via {
-  font-size: 10px;
+  font-size: 12px;
   fill: #888888;
   font-style: italic;
 }
@@ -147,7 +147,7 @@
 .cascade .output .force-pill[data-force="blocking"]  { fill: #D55E00; }
 
 .cascade .output .force-word {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
 }
@@ -160,7 +160,7 @@
 /* --- On-demand text (signal label only; rationale is always-visible via
        band-rationale, and the rule id is debugging-only — kept in
        data-rationale on the band group but not visually rendered). --- */
-.cascade .on-demand-signal    { font-size: 10px; font-style: italic; fill: #555555; }
+.cascade .on-demand-signal    { font-size: 12px; font-style: italic; fill: #555555; }
 
 /* --- Always-visible band rationale (fired bands only, both reveal modes) ---
  * Pulls visual weight onto the cascade where the contribution lives.
@@ -168,7 +168,7 @@
  * the reader sees *what* fired, not just *that* it fired.
  */
 .cascade .band-rationale {
-  font-size: 11px;
+  font-size: 12px;
   fill: #333333;
 }
 
