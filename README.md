@@ -5,11 +5,11 @@
 Visualizing Uncertainty-to-Action Composition for Human Oversight
 
 Authored by:
+Chisom Anyabolu
+Akshat Dubey
+Georges Hattab
 
-<!-- - Chisom Ezekannagha
-- *(co-authors TBD)* -->
-
-The manuscript is in preparation. Please cite the following article should you use any part of this code or build upon it:
+Please cite the following article should you use any part of this code or build upon it:
 
 ```bibtex
 citation placeholer
@@ -65,7 +65,7 @@ The prototype runs on seven synthetic decision cases stipulated as Python object
 | [`tests/test_engine.py`](tests/test_engine.py) | 11 tests: one per case plus engine invariants. |
 | [`SPEC.md`](SPEC.md)             | Full build specification: data models, panel specs, rule definitions, color tokens (§9). |
 
-Force levels: `advisory`, `strong`, `mandatory`, `blocking`. The CVD-deliberate color palette (deep navy + vermillion ramp for force; Wong 2011 categorical hues for rule class) is documented in [SPEC §9](SPEC.md#9-visual-design).
+Force levels: `advisory`, `strong`, `mandatory`, `blocking`. The CVD-deliberate color palette (deep navy + vermillion ramp for force; Wong 2011 categorical hues for rule class) is documented.
 
 ## Installation and running
 
@@ -82,24 +82,8 @@ pip install -r requirements.txt
 pytest tests/
 ```
 
-11 tests, ~10ms. Pass means the rule engine, constraint matrix, precedence resolution, and safety modifier all behave per [SPEC §4](SPEC.md#4-the-rule-engine).
+11 tests, ~10ms. Pass means the rule engine, constraint matrix, precedence resolution, and safety modifier all behave as intended.
 
-### Paper figures
-
-```bash
-python export_figures.py
-```
-
-Regenerates six SVG + PDF pairs into [`figures/`](figures/) and an `index.html` viewer. Every figure the paper shows is produced by code the live demo also runs (single source of truth).
-
-| File | What it shows |
-|------|---------------|
-| `figure_1_four_panel.svg`        | Three-panel composite for `CASE_C` (filename is a legacy artifact from the pre-2f four-panel design). |
-| `figure_2_three_way.svg`         | `CASE_C` across three displays: confidence-only, interval bar, ActionCue cascade. |
-| `figure_3_panel_3_detailed.svg`  | Standalone cascade with the on-demand layer expanded. |
-| `figure_4_generativity_a.svg`    | `CASE_A` — no rules fire. |
-| `figure_4_generativity_cr.svg`   | `CASE_CR` — credit decision, validity wins. |
-| `figure_4_generativity_dr.svg`   | `CASE_DR` — disaster forecasting, safety lift. |
 
 ### Live demo
 
@@ -117,7 +101,3 @@ A **rules registry** expander at the bottom of the page shows the four rule defi
 ## License
 
 Released under the MIT License — see [`LICENSE`](LICENSE).
-
-## Contribution
-
-Contributions are welcome and must comply with the MIT License. The prototype is structured around stable contracts: `models.py`, `rules.py`, `engine.py`, the renderers in `viz/`, and the figure pipeline are treated as the contract.
