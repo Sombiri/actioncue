@@ -5,9 +5,7 @@
 Visualizing Uncertainty-to-Action Composition for Human Oversight
 
 Authored by:
-Chisom Anyabolu
-Akshat Dubey
-Georges Hattab
+Chisom Anyabolu, Akshat Dubey, Georges Hattab
 
 Please cite the following article should you use any part of this code or build upon it:
 
