@@ -1,100 +1,119 @@
 # ActionCue: Uncertainty-to-action binding
 
-## Manuscript
+ActionCue is a research prototype for making explicit how multiple uncertainty conditions compose into a single human-oversight response. It accompanies *Visualizing Uncertainty-to-Action Composition for Human Oversight* by Chisom Anyabolu, Akshat Dubey, and Georges Hattab (2026).
 
-Visualizing Uncertainty-to-Action Composition for Human Oversight
+**[Paper (arXiv:2608.16428)](https://arxiv.org/abs/2608.16428)** · **[PDF](https://arxiv.org/pdf/2608.16428)** · **[Live demo](https://actioncue.streamlit.app/)**
 
-Authored by:
-Chisom Anyabolu, Akshat Dubey, Georges Hattab
+## Prototype preview
 
-Please cite the following article should you use any part of this code or build upon it:
+![Case C: risk score 0.62 against threshold 0.60, missing oxygen saturation and a threshold-crossing interval; completion takes precedence over sensitivity, producing complete at mandatory force.](docs/images/actioncue-case-c.png)
 
-```bibtex
-citation placeholer
-```
+Static preview of Case C, rendered by the [existing prototype components](viz/composite.py). Completion wins precedence over sensitivity, while sensitivity remains visible as a supporting condition. The image shows the prototype's rendered panels; the live demo adds interactive inspection.
 
-## Abstract
+## Research question and method
 
-Artificial intelligence systems often disclose uncertainty, yet they rarely make clear what response that uncertainty should trigger. Most uncertainty visualization encodes uncertainty in model output, leaving users to discern the most appropriate course of action. A second region of the design space--uncertainty in the decision process itself, including how multiple uncertainty conditions compose into an oversight response-- remains comparatively underexplored.
-We address this gap with two coupled contributions. First, we introduce an uncertainty-to-action binding framework that composes multiple uncertainty conditions into a single oversight response under a precedence policy with a contextual safety modifier. That response concerns whether and how an AI-supported decision may proceed, not the substantive domain decision itself. Second, we present ActionCue, a process-transparency visualization that renders that composition explicit. We demonstrate the approach through a three-way comparison with confidence-only and data-level uncertainty displays, using worked cases from healthcare, credit assessment, and disaster forecasting.
-Together, the framework specifies how uncertainty conditions are resolved into an oversight response, and the visualization makes that resolution inspectable rather than implicit.
+How can an interface show which oversight response follows when several uncertainty conditions occur together, and make the composition of that response inspectable?
 
-## Dependencies
+The prototype binds uncertainty conditions to an action, a workflow force, a responsible actor, and a rationale. Four rule classes compose in this precedence order: **validity → completion → sensitivity → interpretation**. The highest-precedence firing determines the primary cue; other firings remain as supporting cues. If no rule fires, the result is **proceed / advisory**. For a cue produced by a fired rule, high harm **or** low reversibility raises the workflow force by one level, preserving the action. A constraint matrix checks permitted action–force combinations.
 
-| Dependency | Version |
-|------------|---------|
-| Python     | 3.11+ |
-| streamlit  | latest |
-| pytest     | latest |
+ActionCue displays the case input, detected signals, and annotated composition cascade. A three-way comparison places that trace alongside confidence-only and data-level uncertainty displays for the same case.
 
-Full pin list in [`requirements.txt`](requirements.txt). No external API calls, no model loading, no network — the prototype is fully offline and deterministic.
+**The oversight response concerns whether and how the AI-supported decision path may proceed.** For example, `complete / mandatory` in Case C asks the clinician to obtain missing oxygen saturation before proceeding; it does not prescribe a diagnosis or treatment. Likewise, credit and disaster cues do not decide loan approval or evacuation. The prototype visualizes workflow force; it does not execute or enforce a domain workflow.
 
-## Data
-
-The prototype runs on seven synthetic decision cases stipulated as Python objects. No external data files are read.
-
-| Location | Description |
-|----------|-------------|
-| [`cases/healthcare.py`](cases/healthcare.py) | `CASE_A`–`CASE_E`: clinical decisions covering proceed, sensitivity-driven inspection, completion-wins-precedence, validity-escalation, and safety-modifier-lifted abstention. |
-| [`cases/cross_domain.py`](cases/cross_domain.py) | `CASE_CR` (credit risk, validity dominates completion) and `CASE_DR` (disaster forecasting, sensitivity with safety lift). |
-
-| Case | Domain | Behavior |
-|------|--------|----------|
-| `CASE_A`  | healthcare  | No rules fire → **proceed / advisory**. |
-| `CASE_B`  | healthcare  | Sensitivity fires → **inspect / strong**. |
-| `CASE_C`  | healthcare  | Completion wins precedence over sensitivity → **complete / mandatory**. |
-| `CASE_D`  | healthcare  | Validity fires → **escalate / mandatory**. |
-| `CASE_E`  | healthcare  | Validity + high harm + low reversibility → **abstain / blocking** (safety lift). |
-| `CASE_CR` | credit risk | Validity dominates completion → **escalate / mandatory**. |
-| `CASE_DR` | disaster    | Sensitivity under high-harm / low-reversibility context → **inspect / mandatory** (safety lift). |
-
-## Code
-
-| Location | Description |
-|----------|-------------|
-| [`models.py`](models.py)         | Dataclasses: `Case`, `Rule`, `UncertaintySignal`, `RuleFiring`, `Cue`. |
-| [`rules.py`](rules.py)           | The four rule definitions (`RULES`) and the `signal_for` resolver. |
-| [`engine.py`](engine.py)         | Rule firing, constraint-matrix validation, precedence resolution, safety modifier, `compose_cue`. |
-| [`viz/`](viz/)                   | SVG renderers (case input, signals, cascade) + the two compositors. Each renderer is pure: takes a `Case` / `Cue`, returns a string. |
-| [`ui/`](ui/)                     | Streamlit wrappers — thin pass-throughs to `components.html`. No SVG generation, no engine logic. |
-| [`app.py`](app.py)               | Streamlit entry point: page config, mode + case selectors, layout. |
-| [`export_figures.py`](export_figures.py) | Offline figure generator. Produces the six paper figures + an HTML index without launching Streamlit. |
-| [`tests/test_engine.py`](tests/test_engine.py) | 11 tests: one per case plus engine invariants. |
-| [`SPEC.md`](SPEC.md)             | Full build specification: data models, panel specs, rule definitions, color tokens (§9). |
-
-Force levels: `advisory`, `strong`, `mandatory`, `blocking`. The CVD-deliberate color palette (deep navy + vermillion ramp for force; Wong 2011 categorical hues for rule class) is documented.
 
 ## Installation and running
 
-### Setup
+Use Python 3.11+; the repository's [development container](.devcontainer/devcontainer.json) uses Python 3.11. Clone the repository and create a virtual environment:
 
 ```bash
-# Python 3.11+ required.
-pip install -r requirements.txt
+git clone https://github.com/Sombiri/actioncue.git
+cd actioncue
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-### Engine tests
+On Windows PowerShell, activate with `.venv\Scripts\Activate.ps1` instead of the `source` command. Run the remaining commands from the repository root with the environment activated.
+
+The declared dependencies are listed in [requirements.txt](requirements.txt):
+
+| Dependency | Declared requirement | Purpose |
+|------------|----------------------|---------|
+| Streamlit | `streamlit>=1.30` | Interactive prototype |
+| pytest | `pytest>=7.0` | Engine tests |
+| CairoSVG | `cairosvg` (no version bound) | Static figure export |
+
+The cases and rule engine run locally without external datasets, API credentials, or model downloads. Installing dependencies requires access to the package sources; the hosted demo requires an internet connection.
+
+### Run locally
 
 ```bash
-pytest tests/
+python -m streamlit run app.py
 ```
 
-11 tests, ~10ms. Pass means the rule engine, constraint matrix, precedence resolution, and safety modifier all behave as intended.
+Open [http://localhost:8501](http://localhost:8501). The sidebar offers two view modes and seven cases; **C** is selected by default:
 
+- **ActionCue (full):** case input and signals above the composition cascade. Hover the resolution and safety arrows for tooltips; click a fired band to inspect its rationale and triggering signal.
+- **Three-way comparison:** confidence-only, uncertainty display only, and the ActionCue cascade. In Case C, the score (0.62) exceeds the threshold (0.60), but the interval (0.55–0.69) crosses it and oxygen saturation is missing. ActionCue makes completion the primary oversight response and retains sensitivity as supporting context.
 
-### Live demo
+The **Rules registry** expander shows the same four rule definitions used by the engine, including their precedence, class, base action, base force, signal, and description.
+
+### Run the existing tests
 
 ```bash
-streamlit run app.py
+python -m pytest tests/
 ```
 
-Opens at `http://localhost:8501`. The sidebar exposes two view modes and a case selector:
+The suite contains 11 tests: seven case behaviors plus checks for permitted action–force combinations, rejection of invalid combinations, rejection of within-class plurality, and attachment of triggering signals.
 
-- **ActionCue (full).** Three-panel layout: case input + signals on the top row, the annotated cascade full-width below. The cascade carries the cue display, force strip, and safety banner inline. Hover the resolution arrow and the strip-safety arrow for tooltips; click a fired band to reveal its rationale and triggering signal.
-- **Three-way comparison.** Three side-by-side columns: confidence-only, data-level uncertainty (interval bar with threshold marked, same renderer as Panel 1), and the ActionCue cascade. `CASE_C` is the recommended starting case — confidence-only says "act"; uncertainty-only says "borderline"; ActionCue surfaces the missing input as the primary issue.
 
-A **rules registry** expander at the bottom of the page shows the four rule definitions — same data the engine reads — with precedence, class, base action, base force, bound signal, and description.
+## Demonstarted cases
+
+Cases are Python objects in [cases/healthcare.py](cases/healthcare.py) (`CASE_A`–`CASE_E`) and [cases/cross_domain.py](cases/cross_domain.py) (`CASE_CR`, `CASE_DR`). No external data files are read.
+
+| Case | Domain | Implemented oversight response |
+|------|--------|--------------------------------|
+| `CASE_A` | Healthcare | No rules fire → **proceed / advisory**. |
+| `CASE_B` | Healthcare | Sensitivity fires → **inspect / strong**. |
+| `CASE_C` | Healthcare | Completion wins precedence over sensitivity → **complete / mandatory**. |
+| `CASE_D` | Healthcare | Validity wins precedence over sensitivity → **escalate / mandatory**. |
+| `CASE_E` | Healthcare | Validity wins; high harm and low reversibility raise force → **escalate / blocking**. |
+| `CASE_CR` | Credit risk | Validity dominates completion and sensitivity → **escalate / mandatory**. |
+| `CASE_DR` | Disaster forecasting | Sensitivity dominates interpretation; the safety modifier raises force → **inspect / mandatory**. |
+
+The safety modifier raises force without changing the action: Case E remains **escalate**, with **blocking** force.
+
+## Repository map
+
+| Location | Description |
+|----------|-------------|
+| [models.py](models.py) | Dataclasses for cases, rules, signals, firings, and cues. |
+| [rules.py](rules.py) | Four rule definitions and the signal resolver. |
+| [engine.py](engine.py) | Rule firing, precedence, safety modifier, and action–force validation. |
+| [cases/](cases/) | Seven synthetic worked cases. |
+| [viz/](viz/) | SVG renderers, styles, interaction script, and figure compositors. |
+| [ui/](ui/) | Streamlit display wrappers and comparison layout. |
+| [app.py](app.py) | Streamlit entry point, case selection, and view modes. |
+| [export_figures.py](export_figures.py) | Static figure export. |
+| [tests/test_engine.py](tests/test_engine.py) | Existing engine tests. |
+
+## Citation
+
+If you use or build on this work, please cite the [arXiv preprint](https://arxiv.org/abs/2608.16428):
+
+```bibtex
+@misc{anyabolu2026actioncue,
+  title         = {Visualizing Uncertainty-to-Action Composition for Human Oversight},
+  author        = {Anyabolu, Chisom and Dubey, Akshat and Hattab, Georges},
+  year          = {2026},
+  eprint        = {2608.16428},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.HC},
+  doi           = {10.48550/arXiv.2608.16428},
+  url           = {https://arxiv.org/abs/2608.16428}
+}
+```
 
 ## License
 
-Released under the MIT License — see [`LICENSE`](LICENSE).
+Released under the MIT License — see [LICENSE](LICENSE).
